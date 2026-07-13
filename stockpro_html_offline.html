@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StockPro — Monitoring Stok</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#f1f5f9;color:#1e293b;font-size:14px}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:13px;outline:none;box-sizing:border-box}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+
+/* Layout */
+#app{display:flex;min-height:100vh}
+aside{width:220px;background:#1e293b;color:#e2e8f0;display:flex;flex-direction:column;flex-shrink:0}
+.logo{padding:20px;border-bottom:1px solid #334155}
+.logo h1{font-size:18px;font-weight:800;color:#fff}
+.logo p{font-size:11px;color:#94a3b8;margin-top:2px}
+nav{flex:1;padding-top:12px}
+nav button{display:flex;align-items:center;gap:10px;width:100%;padding:11px 20px;background:transparent;color:#94a3b8;border:none;font-size:14px;text-align:left;transition:.15s}
+nav button.active{background:#6366f1;color:#fff;font-weight:700}
+.sidebar-footer{padding:14px 20px;border-top:1px solid #334155;display:flex;flex-direction:column;gap:8px}
+.sidebar-footer button,.sidebar-footer label{background:#334155;color:#e2e8f0;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;text-align:left;display:block;width:100%}
+.sidebar-footer .date{font-size:10px;color:#475569}
+main{flex:1;padding:28px;overflow-y:auto}
+
+/* Cards */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-card .icon{font-size:24px}
+.stat-card .val{font-size:26px;font-weight:800;margin-top:6px}
+.stat-card .lbl{font-size:12px;color:#64748b;margin-top:2px}
+.value-banner{background:linear-gradient(135deg,#1e293b,#334155);border-radius:14px;padding:20px 28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.value-banner .big{color:#fff;font-size:28px;font-weight:800}
+.value-banner .sub{color:#94a3b8;font-size:13px;margin-bottom:4px}
+.value-banner .note{color:#64748b;font-size:12px;margin-top:4px}
+.value-banner .emoji{font-size:48px;opacity:.2}
+
+/* Panels */
+.panel{background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:24px;overflow:hidden}
+.panel-head{padding:16px 20px;border-bottom:1px solid #f1f5f9;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.panel-body{padding:20px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px}
+
+/* Form */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px}
+.field textarea{resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.new-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:14px}
+.new-box .new-title{font-size:12px;font-weight:700;color:#0369a1;margin-bottom:10px}
+.warn-box{background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.warn-box .warn-title{font-size:12px;font-weight:700;color:#854d0e;margin-bottom:8px}
+.err-hint{font-size:12px;color:#ef4444;padding:6px 0}
+.btn-primary{background:#6366f1;color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;width:100%;margin-top:4px}
+.btn-warn{background:#f59e0b;color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;width:100%;margin-top:4px}
+.btn-sm{border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700}
+.btn-edit{background:#eef2ff;color:#6366f1}
+.btn-del{background:#fee2e2;color:#ef4444}
+.btn-cancel{padding:9px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:13px;font-weight:600}
+.btn-save{padding:9px 18px;border-radius:8px;border:none;background:#6366f1;color:#fff;font-size:13px;font-weight:700}
+.btn-del-confirm{padding:9px 18px;border-radius:8px;border:none;background:#ef4444;color:#fff;font-size:13px;font-weight:700}
+
+/* Table */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:10px 14px;text-align:left;font-weight:700;color:#475569;font-size:11px;text-transform:uppercase;background:#f8fafc}
+td{padding:11px 14px;border-top:1px solid #f1f5f9}
+tr:nth-child(even) td{background:#fafafa}
+
+/* Badges */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block}
+.badge-ok{background:#dcfce7;color:#16a34a}
+.badge-low{background:#fee2e2;color:#ef4444}
+.badge-in{background:#22c55e;color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-out{background:#f59e0b;color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-edit{background:#6366f1;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-del{background:#ef4444;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.change-chip{font-size:12px;color:#475569;background:#fff;padding:3px 8px;border-radius:6px;display:inline-block;margin:2px;border:1px solid #e2e8f0}
+
+/* History cards */
+.hist-card{border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.hist-in{background:#f0fdf4;border:1px solid #bbf7d0}
+.hist-out{background:#fff7ed;border:1px solid #fed7aa}
+.hist-del{background:#fff1f2;border:1px solid #fecdd3}
+.hist-edit{background:#f0f9ff;border:1px solid #bae6fd}
+.hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.hist-name{font-weight:700;font-size:14px}
+.hist-meta{font-size:12px;color:#64748b;display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.hist-note{font-size:12px;color:#475569;font-style:italic;margin-top:4px}
+.hist-scroll{max-height:480px;overflow-y:auto}
+
+/* Alert */
+.alert-low{background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:16px 20px}
+.alert-low h4{font-weight:700;color:#c2410c;margin-bottom:8px}
+.low-chips{display:flex;gap:8px;flex-wrap:wrap}
+.low-chip{background:#fed7aa;color:#9a3412;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+
+/* Summary cards */
+.sum-card{color:#fff;border-radius:14px;padding:20px 24px}
+.sum-card .s-lbl{font-size:13px;opacity:.8}
+.sum-card .s-val{font-size:30px;font-weight:800}
+.sum-card .s-sub{font-size:12px;opacity:.7}
+
+/* Tx row */
+.tx-row{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:10px;margin-bottom:8px}
+.tx-row-in{background:#f0fdf4;border:1px solid #bbf7d0}
+.tx-row-out{background:#fff7ed;border:1px solid #fed7aa}
+.tx-info{flex:1;font-size:13px}
+.tx-info .tx-name{font-weight:700}
+.tx-info .tx-meta{color:#64748b;font-size:12px}
+.tx-right{text-align:right}
+.tx-right .tx-amt{font-weight:800;font-size:14px}
+.tx-right .tx-date{font-size:11px;color:#94a3b8}
+
+/* Master list */
+.tag-list{display:flex;flex-wrap:wrap;gap:8px}
+.tag-item{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:20px;padding:5px 12px 5px 14px;font-size:13px}
+.tag-item button{background:none;border:none;color:#94a3b8;font-size:14px;padding:0 2px;line-height:1}
+
+/* Search */
+.search-wrap{position:relative;margin-bottom:16px}
+.search-wrap input{width:100%;padding:9px 12px 9px 36px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8}
+.search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:#94a3b8;font-size:16px}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:900;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:16px;padding:28px;width:480px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #f1f5f9}
+.modal-title{font-weight:800;font-size:16px}
+.modal-close{background:#f1f5f9;border:none;border-radius:8px;width:32px;height:32px;font-size:16px;color:#64748b}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+
+/* Toast */
+#toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.18);display:none;color:#fff}
+
+/* Empty */
+.empty{text-align:center;color:#94a3b8;padding:40px 0;font-size:13px}
+
+/* Page title */
+.page-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.page-sub{color:#64748b;font-size:13px;margin-bottom:24px}
+
+mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div id="app">
+  <aside>
+    <div class="logo">
+      <h1>📦 StockPro</h1>
+      <p>Sistem Monitoring Stok</p>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidebar-footer">
+      <button onclick="exportData()">⬇️ Export Backup</button>
+      <label>⬆️ Import Backup<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+      <div class="date" id="dateLabel"></div>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<!-- Edit Modal -->
+<div class="overlay" id="editModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">✏️ Edit Barang</span><button class="modal-close" onclick="closeEdit()">✕</button></div>
+    <div class="field"><label>Nama Barang *</label><input id="e_name"></div>
+    <div class="row2">
+      <div class="field"><label>Kategori</label><select id="e_cat"></select></div>
+      <div class="field"><label>Satuan</label><select id="e_unit"></select></div>
+    </div>
+    <div class="row3">
+      <div class="field"><label>Stok</label><input type="number" min="0" id="e_stock"></div>
+      <div class="field"><label>Min Stok</label><input type="number" min="0" id="e_minstock"></div>
+      <div class="field"><label>Harga (Rp)</label><input type="number" min="0" id="e_price"></div>
+    </div>
+    <div class="warn-box">
+      <div class="warn-title">⚠️ Wajib diisi untuk audit trail</div>
+      <div class="field"><label>Alasan Perubahan *</label><input id="e_reason" placeholder="contoh: koreksi data, stok opname..."></div>
+      <div class="field"><label>Keterangan Tambahan</label><textarea id="e_note" rows="2"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEdit()">Batal</button>
+      <button class="btn-save" onclick="saveEdit()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="overlay" id="delModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" style="color:#ef4444">🗑️ Hapus Barang</span><button class="modal-close" onclick="closeDel()">✕</button></div>
+    <p id="delDesc" style="font-size:13px;color:#475569;margin-bottom:16px"></p>
+    <div class="field"><label>Keterangan / Alasan Hapus *</label><textarea id="del_note" rows="3"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeDel()">Batal</button>
+      <button class="btn-del-confirm" onclick="confirmDel()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────
+const LS = { items:'sp_items', inRec:'sp_in', outRec:'sp_out', actLog:'sp_log', cats:'sp_cats', units:'sp_units' };
+const lg = (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } };
+const ls = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
+
+let items   = lg(LS.items, []);
+let inRec   = lg(LS.inRec, []);
+let outRec  = lg(LS.outRec, []);
+let actLog  = lg(LS.actLog, []);
+let cats    = lg(LS.cats, []);
+let units   = lg(LS.units, []);
+let page    = 'dashboard';
+let editId  = null;
+let delId   = null;
+let searchSummary = '';
+let searchManage  = '';
+
+const save = () => { ls(LS.items,items); ls(LS.inRec,inRec); ls(LS.outRec,outRec); ls(LS.actLog,actLog); ls(LS.cats,cats); ls(LS.units,units); };
+
+// ── Helpers ────────────────────────────────────────────────────
+const fmt   = d => new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+const today = () => new Date().toISOString().slice(0,10);
+const fmtRp = n => 'Rp ' + Number(n).toLocaleString('id-ID');
+const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+const fuzzy = (str, pat) => {
+  if (!pat) return true;
+  const s=str.toLowerCase(), p=pat.toLowerCase(); let pi=0;
+  for (let i=0;i<s.length&&pi<p.length;i++) if(s[i]===p[pi]) pi++;
+  return pi===p.length;
+};
+
+const hl = (text, query) => {
+  if (!query) return esc(text);
+  const s=text.toLowerCase(), p=query.toLowerCase();
+  const used=new Set(); let pi=0;
+  for (let i=0;i<s.length&&pi<p.length;i++) if(s[i]===p[pi]){used.add(i);pi++;}
+  return [...text].map((ch,i) => used.has(i)?`<mark>${esc(ch)}</mark>`:esc(ch)).join('');
+};
+
+// ── Toast ──────────────────────────────────────────────────────
+let toastTimer;
+const toast = (msg, type='ok') => {
+  const el = document.getElementById('toast');
+  el.textContent = (type==='err'?'❌ ':type==='warn'?'⚠️ ':'✅ ') + msg;
+  el.style.background = type==='err'?'#ef4444':type==='warn'?'#f59e0b':'#22c55e';
+  el.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.style.display='none', 3000);
+};
+
+// ── Nav ────────────────────────────────────────────────────────
+const NAV = [
+  {key:'dashboard', label:'Dashboard',     icon:'📊'},
+  {key:'in',        label:'Barang Masuk',  icon:'📥'},
+  {key:'out',       label:'Barang Keluar', icon:'📤'},
+  {key:'summary',   label:'Ringkasan',     icon:'📋'},
+  {key:'manage',    label:'Kelola Barang', icon:'⚙️'},
+  {key:'settings',  label:'Pengaturan',    icon:'🛠️'},
+];
+
+const renderNav = () => {
+  document.getElementById('nav').innerHTML = NAV.map(n =>
+    `<button class="${page===n.key?'active':''}" onclick="go('${n.key}')">${n.icon} ${n.label}</button>`
+  ).join('');
+  document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+};
+
+const go = p => { page=p; render(); };
+
+// ── Render ─────────────────────────────────────────────────────
+const render = () => {
+  renderNav();
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, summary:pageSummary, manage:pageManage, settings:pageSettings };
+  document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
+};
+
+// ── DASHBOARD ──────────────────────────────────────────────────
+const pageDashboard = () => {
+  const totalIn  = inRec.reduce((s,r)=>s+r.qty,0);
+  const totalOut = outRec.reduce((s,r)=>s+r.qty,0);
+  const low      = items.filter(i=>i.stock<=i.minStock);
+  const totalVal = items.reduce((s,i)=>s+i.stock*(i.price||0),0);
+  return `
+  <div class="page-title">Dashboard Monitoring Stok</div>
+  <div class="page-sub">Ringkasan kondisi stok terkini</div>
+  <div class="stat-grid">
+    ${[
+      {l:'Total Jenis Barang',v:items.length,    ic:'🗂️',c:'#6366f1'},
+      {l:'Total Barang Masuk',v:totalIn,          ic:'📥',c:'#0ea5e9'},
+      {l:'Total Barang Keluar',v:totalOut,        ic:'📤',c:'#f59e0b'},
+      {l:'Stok Menipis',       v:low.length,      ic:'⚠️',c:'#ef4444'},
+    ].map(c=>`<div class="stat-card" style="border-top:4px solid ${c.c}">
+      <div class="icon">${c.ic}</div>
+      <div class="val" style="color:${c.c}">${c.v}</div>
+      <div class="lbl">${c.l}</div>
+    </div>`).join('')}
+  </div>
+  <div class="value-banner">
+    <div>
+      <div class="sub">💰 Total Nilai Stok Keseluruhan</div>
+      <div class="big">${fmtRp(totalVal)}</div>
+      <div class="note">berdasarkan harga terakhir × stok saat ini</div>
+    </div>
+    <div class="emoji">💵</div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">📦 Daftar Stok Barang</div>
+    ${items.length===0?'<div class="empty">Belum ada barang. Tambahkan melalui halaman Barang Masuk.</div>':`
+    <table>
+      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Harga Satuan</th><th>Stok</th><th>Nilai Stok</th><th>Status</th></tr></thead>
+      <tbody>${items.map(it=>{const isLow=it.stock<=it.minStock;return`
+        <tr>
+          <td><strong>${esc(it.name)}</strong></td>
+          <td style="color:#64748b">${esc(it.category)}</td>
+          <td>${it.price?fmtRp(it.price):'<span style="color:#cbd5e1;font-style:italic">–</span>'}</td>
+          <td style="font-weight:700;color:${isLow?'#ef4444':'#22c55e'}">${it.stock} <span style="font-size:11px;font-weight:400;color:#94a3b8">${esc(it.unit)}</span></td>
+          <td style="font-weight:700">${it.price?fmtRp(it.stock*it.price):'<span style="color:#cbd5e1;font-style:italic">–</span>'}</td>
+          <td><span class="badge ${isLow?'badge-low':'badge-ok'}">${isLow?'⚠️ Menipis':'✅ Aman'}</span></td>
+        </tr>`}).join('')}</tbody>
+    </table>`}
+  </div>
+  ${low.length>0?`<div class="alert-low"><h4>⚠️ Peringatan Stok Menipis</h4><div class="low-chips">${low.map(i=>`<span class="low-chip">${esc(i.name)}: ${i.stock} ${esc(i.unit)}</span>`).join('')}</div></div>`:''}`;
+};
+
+// ── BARANG MASUK ───────────────────────────────────────────────
+const pageIn = () => {
+  const supList = [...new Map(inRec.filter(r=>r.supplier).map(r=>[r.supplier.toLowerCase(),r.supplier])).values()];
+  return `
+  <div class="page-title">📥 Input Barang Masuk</div>
+  <div class="page-sub">Catat penerimaan stok barang</div>
+  <div class="two-col">
+    <div class="panel"><div class="panel-head">Form Barang Masuk</div><div class="panel-body">
+      <div class="field"><label>Nama Barang *</label>
+        <select id="f_itemId" onchange="onItemSelect()">
+          <option value="">-- Pilih Barang --</option>
+          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+          <option value="__new__">➕ Tambah Barang Baru...</option>
+        </select>
+      </div>
+      <div id="newItemBox" style="display:none" class="new-box">
+        <div class="new-title">🆕 Detail Barang Baru</div>
+        <div class="field"><label>Nama Barang Baru *</label><input id="f_newName" placeholder="contoh: Sarung Tangan Nitril"></div>
+        <div class="row2">
+          <div class="field"><label>Kategori</label>
+            ${cats.length===0?'<div class="err-hint">⚠️ Belum ada kategori. Tambahkan di <b>Pengaturan</b>.</div>':
+            `<select id="f_cat">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`}
+          </div>
+          <div class="field"><label>Satuan</label>
+            ${units.length===0?'<div class="err-hint">⚠️ Belum ada satuan. Tambahkan di <b>Pengaturan</b>.</div>':
+            `<select id="f_unit">${units.map(u=>`<option>${esc(u)}</option>`).join('')}</select>`}
+          </div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Jumlah *</label><input type="number" min="1" id="f_qty" placeholder="0"></div>
+        <div class="field"><label>Harga Satuan (Rp)</label><input type="number" min="0" id="f_price" placeholder="0"></div>
+      </div>
+      <div class="field"><label>Tanggal</label><input type="date" id="f_date" value="${today()}"></div>
+      <div class="field"><label>Supplier / Sumber</label>
+        <select id="f_supId" onchange="onSupSelect()">
+          <option value="">-- Pilih Supplier --</option>
+          ${supList.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+          <option value="__new__">➕ Tambah Supplier Baru...</option>
+        </select>
+      </div>
+      <div id="newSupBox" style="display:none" class="field"><label>Nama Supplier Baru *</label><input id="f_newSup" placeholder="contoh: PT. Maju Jaya" style="border-color:#93c5fd"></div>
+      <div class="field"><label>Keterangan</label><textarea id="f_note" rows="3"></textarea></div>
+      <button class="btn-primary" onclick="submitIn()">+ Simpan Barang Masuk</button>
+    </div></div>
+    <div class="panel"><div class="panel-head">Riwayat Barang Masuk (${inRec.length})</div><div class="panel-body">
+      ${inRec.length===0?'<div class="empty">Belum ada data barang masuk.</div>':
+      `<div class="hist-scroll">${inRec.map(r=>`
+        <div class="hist-card hist-in">
+          <div class="hist-head"><span class="hist-name">${esc(r.name)}</span><span class="badge-in">+${r.qty} ${esc(r.unit)}</span></div>
+          <div class="hist-meta">
+            <span>📁 ${esc(r.category)}</span>
+            ${r.supplier?`<span>🏭 ${esc(r.supplier)}</span>`:''}
+            <span>📅 ${fmt(r.date)}</span>
+            ${r.price>0?`<span style="color:#6366f1;font-weight:600">💰 ${fmtRp(r.price)}/satuan · Total: ${fmtRp(r.price*r.qty)}</span>`:''}
+          </div>
+          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+        </div>`).join('')}</div>`}
+    </div></div>
+  </div>`;
+};
+
+const onItemSelect = () => {
+  const v = document.getElementById('f_itemId').value;
+  document.getElementById('newItemBox').style.display = v==='__new__'?'block':'none';
+};
+const onSupSelect = () => {
+  const v = document.getElementById('f_supId').value;
+  document.getElementById('newSupBox').style.display = v==='__new__'?'block':'none';
+};
+
+const submitIn = () => {
+  const itemId  = document.getElementById('f_itemId').value;
+  const isEx    = itemId !== '' && itemId !== '__new__';
+  const res     = isEx ? items.find(i=>i.id===Number(itemId)) : null;
+  const newName = (document.getElementById('f_newName')||{value:''}).value.trim();
+  const name    = isEx ? res.name     : newName;
+  const category= isEx ? res.category : ((document.getElementById('f_cat')||{value:''}).value);
+  const unit    = isEx ? res.unit     : ((document.getElementById('f_unit')||{value:''}).value);
+  const supId   = document.getElementById('f_supId').value;
+  const supplier= supId==='__new__' ? (document.getElementById('f_newSup')||{value:''}).value.trim() : supId;
+  const qty     = Number(document.getElementById('f_qty').value);
+  const price   = Number(document.getElementById('f_price').value)||0;
+  const date    = document.getElementById('f_date').value;
+  const note    = document.getElementById('f_note').value;
+
+  if (!itemId)                      return toast('Pilih atau tambah barang!','err');
+  if (itemId==='__new__' && !name)  return toast('Nama barang wajib diisi!','err');
+  if (!qty || qty<=0)               return toast('Jumlah harus lebih dari 0!','err');
+  if (supId==='__new__' && !supplier) return toast('Nama supplier wajib diisi!','err');
+
+  inRec.unshift({id:Date.now(), name, category, qty, unit, price, supplier, date, note});
+  if (isEx) {
+    items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock+qty,price}:i);
+  } else {
+    const ex = items.find(i=>i.name.toLowerCase()===name.toLowerCase());
+    if (ex) items = items.map(i=>i.name.toLowerCase()===name.toLowerCase()?{...i,stock:i.stock+qty,price}:i);
+    else items.push({id:Date.now()+1, name, category, stock:qty, unit, minStock:10, price});
+  }
+  save(); toast('Barang masuk berhasil dicatat!'); render();
+};
+
+// ── BARANG KELUAR ──────────────────────────────────────────────
+const pageOut = () => `
+  <div class="page-title">📤 Input Barang Keluar</div>
+  <div class="page-sub">Catat pengeluaran atau penggunaan stok</div>
+  <div class="two-col">
+    <div class="panel"><div class="panel-head">Form Barang Keluar</div><div class="panel-body">
+      <div class="field"><label>Pilih Barang *</label>
+        <select id="o_itemId">
+          <option value="">-- Pilih Barang --</option>
+          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+        </select>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Jumlah *</label><input type="number" min="1" id="o_qty" placeholder="0"></div>
+        <div class="field"><label>Tanggal</label><input type="date" id="o_date" value="${today()}"></div>
+      </div>
+      <div class="field"><label>Tujuan / Penerima</label><input id="o_recipient" placeholder="nama penerima / departemen"></div>
+      <div class="field"><label>Keterangan</label><textarea id="o_note" rows="3"></textarea></div>
+      <button class="btn-warn" onclick="submitOut()">+ Simpan Barang Keluar</button>
+    </div></div>
+    <div class="panel"><div class="panel-head">Riwayat Barang Keluar (${outRec.length})</div><div class="panel-body">
+      ${outRec.length===0?'<div class="empty">Belum ada data barang keluar.</div>':
+      `<div class="hist-scroll">${outRec.map(r=>`
+        <div class="hist-card hist-out">
+          <div class="hist-head"><span class="hist-name">${esc(r.name)}</span><span class="badge-out">-${r.qty} ${esc(r.unit)}</span></div>
+          <div class="hist-meta">
+            <span>📁 ${esc(r.category)}</span>
+            ${r.recipient?`<span>👤 ${esc(r.recipient)}</span>`:''}
+            <span>📅 ${fmt(r.date)}</span>
+          </div>
+          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+        </div>`).join('')}</div>`}
+    </div></div>
+  </div>`;
+
+const submitOut = () => {
+  const itemId    = document.getElementById('o_itemId').value;
+  const qty       = Number(document.getElementById('o_qty').value);
+  const date      = document.getElementById('o_date').value;
+  const recipient = document.getElementById('o_recipient').value;
+  const note      = document.getElementById('o_note').value;
+  if (!itemId || !qty || qty<=0) return toast('Lengkapi data!','err');
+  const item = items.find(i=>i.id===Number(itemId));
+  if (!item) return toast('Barang tidak ditemukan!','err');
+  if (qty>item.stock) return toast(`Stok tidak cukup! Tersedia: ${item.stock} ${item.unit}`,'err');
+  outRec.unshift({id:Date.now(), name:item.name, category:item.category, qty, unit:item.unit, recipient, date, note});
+  items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock-qty}:i);
+  save(); toast('Barang keluar berhasil dicatat!'); render();
+};
+
+// ── RINGKASAN ──────────────────────────────────────────────────
+const pageSummary = () => {
+  const totalIn  = inRec.reduce((s,r)=>s+r.qty,0);
+  const totalOut = outRec.reduce((s,r)=>s+r.qty,0);
+  const fItems   = items.filter(i=>fuzzy(i.name,searchSummary)||fuzzy(i.category,searchSummary));
+  const fTx      = [...inRec.map(r=>({...r,type:'in'})),...outRec.map(r=>({...r,type:'out'}))]
+    .sort((a,b)=>b.id-a.id)
+    .filter(r=>fuzzy(r.name,searchSummary)||fuzzy(r.category,searchSummary)||fuzzy(r.supplier||'',searchSummary)||fuzzy(r.recipient||'',searchSummary));
+  return `
+  <div class="page-title">📋 Ringkasan & Laporan</div>
+  <div class="page-sub">Rekap keseluruhan transaksi stok</div>
+  <div class="three-col">
+    ${[
+      {l:'Total Transaksi', v:inRec.length+outRec.length, sub:`Masuk: ${inRec.length} | Keluar: ${outRec.length}`, g:'linear-gradient(135deg,#6366f1,#8b5cf6)'},
+      {l:'Total Unit Masuk', v:totalIn,  sub:`dari ${inRec.length} transaksi`,  g:'linear-gradient(135deg,#0ea5e9,#22c55e)'},
+      {l:'Total Unit Keluar',v:totalOut, sub:`dari ${outRec.length} transaksi`, g:'linear-gradient(135deg,#f59e0b,#ef4444)'},
+    ].map(c=>`<div class="sum-card" style="background:${c.g}">
+      <div class="s-lbl">${c.l}</div><div class="s-val">${c.v}</div><div class="s-sub">${c.sub}</div>
+    </div>`).join('')}
+  </div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input value="${esc(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima...">
+    ${searchSummary?`<button class="search-clear" onclick="searchSummary='';render()">✕</button>`:''}
+  </div>
+  <div class="panel">
+    <div class="panel-head">📊 Ringkasan Per Barang ${searchSummary?`<span style="font-size:12px;color:#6366f1;font-weight:600">${fItems.length} hasil</span>`:''}
+    </div>
+    ${fItems.length===0?`<div class="empty">${searchSummary?`Tidak ada barang cocok "${esc(searchSummary)}"`:'Belum ada data barang.'}</div>`:`
+    <table>
+      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Total Masuk</th><th>Total Keluar</th><th>Stok Saat Ini</th><th>Status</th></tr></thead>
+      <tbody>${fItems.map(it=>{
+        const tIn=inRec.filter(r=>r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
+        const tOut=outRec.filter(r=>r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
+        const isLow=it.stock<=it.minStock;
+        return`<tr>
+          <td><strong>${hl(it.name,searchSummary)}</strong></td>
+          <td style="color:#64748b">${hl(it.category,searchSummary)}</td>
+          <td style="color:#22c55e;font-weight:700">+${tIn}</td>
+          <td style="color:#f59e0b;font-weight:700">-${tOut}</td>
+          <td style="font-weight:800;color:${isLow?'#ef4444':'#1e293b'}">${it.stock} ${esc(it.unit)}</td>
+          <td><span class="badge ${isLow?'badge-low':'badge-ok'}">${isLow?'⚠️ Menipis':'✅ Aman'}</span></td>
+        </tr>`;}).join('')}</tbody>
+    </table>`}
+  </div>
+  <div class="panel">
+    <div class="panel-head">📜 Semua Riwayat Transaksi ${searchSummary?`<span style="font-size:12px;color:#6366f1;font-weight:600">${fTx.length} hasil</span>`:''}
+    </div>
+    <div class="panel-body">
+    ${fTx.length===0?`<div class="empty">${searchSummary?`Tidak ada transaksi cocok "${esc(searchSummary)}"`:'Belum ada transaksi.'}</div>`:
+    fTx.map(r=>`
+      <div class="tx-row ${r.type==='in'?'tx-row-in':'tx-row-out'}">
+        <span style="font-size:18px">${r.type==='in'?'📥':'📤'}</span>
+        <div class="tx-info">
+          <span class="tx-name">${hl(r.name,searchSummary)}</span>
+          <span class="tx-meta"> ${hl(r.category,searchSummary)}</span>
+          ${r.type==='in'&&r.supplier?`<span class="tx-meta"> • 🏭 ${hl(r.supplier,searchSummary)}</span>`:''}
+          ${r.type==='out'&&r.recipient?`<span class="tx-meta"> • 👤 ${hl(r.recipient,searchSummary)}</span>`:''}
+          ${r.note?`<span style="color:#94a3b8;font-size:12px;font-style:italic"> • ${esc(r.note)}</span>`:''}
+        </div>
+        <div class="tx-right">
+          <div class="tx-amt" style="color:${r.type==='in'?'#22c55e':'#f59e0b'}">${r.type==='in'?'+':'-'}${r.qty} ${esc(r.unit)}</div>
+          <div class="tx-date">${fmt(r.date)}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+};
+
+// ── KELOLA BARANG ──────────────────────────────────────────────
+const pageManage = () => {
+  const fItems = items.filter(i=>fuzzy(i.name,searchManage)||fuzzy(i.category,searchManage)||fuzzy(i.unit,searchManage));
+  return `
+  <div class="page-title">⚙️ Kelola Barang</div>
+  <div class="page-sub">Edit atau hapus data barang. Setiap perubahan dicatat di audit trail.</div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input value="${esc(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
+    ${searchManage?`<button class="search-clear" onclick="searchManage='';render()">✕</button>`:''}
+  </div>
+  <div class="panel">
+    <div class="panel-head">📦 Daftar Barang (${fItems.length}${searchManage?` dari ${items.length}`:''})</div>
+    ${fItems.length===0?`<div class="empty">${searchManage?`Tidak ada barang cocok "${esc(searchManage)}"`:'Belum ada barang. Tambahkan melalui halaman Barang Masuk.'}</div>`:`
+    <table>
+      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Satuan</th><th>Min Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+      <tbody>${fItems.map(it=>{const isLow=it.stock<=it.minStock;return`
+        <tr>
+          <td><strong>${hl(it.name,searchManage)}</strong></td>
+          <td style="color:#64748b">${hl(it.category,searchManage)}</td>
+          <td style="font-weight:700;color:${isLow?'#ef4444':'#22c55e'}">${it.stock}</td>
+          <td style="color:#64748b">${hl(it.unit,searchManage)}</td>
+          <td style="color:#64748b">${it.minStock}</td>
+          <td><span class="badge ${isLow?'badge-low':'badge-ok'}">${isLow?'⚠️ Menipis':'✅ Aman'}</span></td>
+          <td><div style="display:flex;gap:8px">
+            <button class="btn-sm btn-edit" onclick="openEdit(${it.id})">✏️ Edit</button>
+            <button class="btn-sm btn-del" onclick="openDel(${it.id})">🗑️ Hapus</button>
+          </div></td>
+        </tr>`}).join('')}</tbody>
+    </table>`}
+  </div>
+  <div class="panel">
+    <div class="panel-head">🔍 Audit Trail (${actLog.length})</div>
+    <div class="panel-body">
+    ${actLog.length===0?'<div class="empty">Belum ada aktivitas edit atau hapus.</div>':
+    actLog.map(a=>`
+      <div class="hist-card ${a.type==='delete'?'hist-del':'hist-edit'}">
+        <div class="hist-head">
+          <div><span class="${a.type==='delete'?'badge-del':'badge-edit'}">${a.type==='delete'?'🗑️ HAPUS':'✏️ EDIT'}</span> <span style="font-weight:700">${esc(a.itemName)}</span></div>
+          <span style="font-size:11px;color:#94a3b8">${new Date(a.ts).toLocaleString('id-ID')}</span>
+        </div>
+        ${a.type==='edit'?(a.changes||[]).map(ch=>`<span class="change-chip">🔄 ${esc(ch)}</span>`).join(''):''}
+        ${a.type==='delete'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">Stok saat dihapus: <strong>${a.stockAtDelete} ${esc(a.unit)}</strong></div>`:''}
+        <div style="font-size:12px;color:#1e40af;font-weight:600;margin-top:6px">📋 Alasan: ${esc(a.reason)}</div>
+        ${a.note?`<div class="hist-note">📝 ${esc(a.note)}</div>`:''}
+      </div>`).join('')}
+    </div>
+  </div>`;
+};
+
+// ── PENGATURAN ─────────────────────────────────────────────────
+const pageSettings = () => `
+  <div class="page-title">🛠️ Pengaturan</div>
+  <div class="page-sub">Kelola master data kategori dan satuan sesuai kebutuhan bisnis kamu</div>
+  <div class="panel" style="margin-bottom:16px"><div class="panel-body" style="padding:12px 18px;background:#fefce8;border-radius:14px;color:#854d0e;font-size:13px">
+    ⚠️ <strong>Catatan:</strong> Kategori atau satuan yang sedang digunakan oleh barang aktif tidak bisa dihapus.
+  </div></div>
+  <div class="two-col">
+    ${masterList('Kategori Barang','📁',cats,'cat','Spare Part, Bahan Baku...')}
+    ${masterList('Satuan Barang','📏',units,'unit','unit, kg, pcs, karton...')}
+  </div>`;
+
+const masterList = (title, icon, arr, type, ph) => `
+  <div class="panel"><div class="panel-head">${icon} ${title}</div><div class="panel-body">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input id="ml_${type}" placeholder="contoh: ${ph}" style="flex:1;padding:9px 12px;border-radius:8px;border:1px solid #e2e8f0" onkeydown="if(event.key==='Enter')addMaster('${type}')">
+      <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="addMaster('${type}')">+ Tambah</button>
+    </div>
+    ${arr.length===0?'<div class="empty" style="padding:20px 0">Belum ada data. Tambahkan di atas.</div>':
+    `<div class="tag-list">${arr.map(v=>`<div class="tag-item">${esc(v)}<button onclick="delMaster('${type}','${esc(v)}')" title="Hapus">✕</button></div>`).join('')}</div>`}
+  </div></div>`;
+
+const addMaster = type => {
+  const el = document.getElementById(`ml_${type}`);
+  const v  = el.value.trim(); if (!v) return;
+  if (type==='cat') {
+    if (cats.map(c=>c.toLowerCase()).includes(v.toLowerCase())) return toast('Kategori sudah ada!','warn');
+    cats.push(v); toast(`Kategori "${v}" ditambahkan!`);
+  } else {
+    if (units.map(u=>u.toLowerCase()).includes(v.toLowerCase())) return toast('Satuan sudah ada!','warn');
+    units.push(v); toast(`Satuan "${v}" ditambahkan!`);
+  }
+  save(); render();
+};
+
+const delMaster = (type, v) => {
+  if (type==='cat') {
+    if (items.some(i=>i.category===v)) return toast(`Kategori "${v}" masih digunakan!`,'err');
+    cats = cats.filter(c=>c!==v); toast(`Kategori "${v}" dihapus.`);
+  } else {
+    if (items.some(i=>i.unit===v)) return toast(`Satuan "${v}" masih digunakan!`,'err');
+    units = units.filter(u=>u!==v); toast(`Satuan "${v}" dihapus.`);
+  }
+  save(); render();
+};
+
+// ── Edit Modal ─────────────────────────────────────────────────
+const openEdit = id => {
+  const it = items.find(i=>i.id===id);
+  if (!it) return;
+  editId = id;
+  document.getElementById('e_name').value    = it.name;
+  document.getElementById('e_stock').value   = it.stock;
+  document.getElementById('e_minstock').value= it.minStock;
+  document.getElementById('e_price').value   = it.price||'';
+  document.getElementById('e_reason').value  = '';
+  document.getElementById('e_note').value    = '';
+  // populate selects
+  const catSel  = document.getElementById('e_cat');
+  const unitSel = document.getElementById('e_unit');
+  catSel.innerHTML  = cats.map(c=>`<option ${c===it.category?'selected':''}>${esc(c)}</option>`).join('');
+  unitSel.innerHTML = units.map(u=>`<option ${u===it.unit?'selected':''}>${esc(u)}</option>`).join('');
+  if (!units.includes(it.unit)) unitSel.innerHTML += `<option selected>${esc(it.unit)}</option>`;
+  document.getElementById('editModal').style.display='flex';
+};
+const closeEdit = () => { document.getElementById('editModal').style.display='none'; editId=null; };
+const saveEdit  = () => {
+  const name    = document.getElementById('e_name').value.trim();
+  const cat     = document.getElementById('e_cat').value;
+  const unit    = document.getElementById('e_unit').value;
+  const stock   = Number(document.getElementById('e_stock').value);
+  const minStock= Number(document.getElementById('e_minstock').value);
+  const price   = Number(document.getElementById('e_price').value)||0;
+  const reason  = document.getElementById('e_reason').value.trim();
+  const note    = document.getElementById('e_note').value.trim();
+  if (!name)   return toast('Nama tidak boleh kosong!','err');
+  if (!reason) return toast('Alasan perubahan wajib diisi!','err');
+  const orig = items.find(i=>i.id===editId);
+  const changes = [];
+  if (orig.name!==name)         changes.push(`Nama: "${orig.name}" → "${name}"`);
+  if (orig.category!==cat)      changes.push(`Kategori: "${orig.category}" → "${cat}"`);
+  if (orig.stock!==stock)       changes.push(`Stok: ${orig.stock} → ${stock}`);
+  if (orig.unit!==unit)         changes.push(`Satuan: "${orig.unit}" → "${unit}"`);
+  if (orig.minStock!==minStock) changes.push(`Min Stok: ${orig.minStock} → ${minStock}`);
+  if ((orig.price||0)!==price)  changes.push(`Harga: ${fmtRp(orig.price||0)} → ${fmtRp(price)}`);
+  if (!changes.length) { closeEdit(); return toast('Tidak ada perubahan.','warn'); }
+  items = items.map(i=>i.id===editId?{...i,name,category:cat,unit,stock,minStock,price}:i);
+  actLog.unshift({id:Date.now(), ts:new Date().toISOString(), type:'edit', itemName:orig.name, changes, reason, note});
+  save(); closeEdit(); toast('Barang berhasil diperbarui!'); render();
+};
+
+// ── Delete Modal ───────────────────────────────────────────────
+const openDel = id => {
+  const it = items.find(i=>i.id===id); if (!it) return;
+  delId = id;
+  document.getElementById('delDesc').innerHTML = `Kamu akan menghapus <strong>"${esc(it.name)}"</strong> (stok: ${it.stock} ${esc(it.unit)}). Tindakan ini tidak bisa dibatalkan.`;
+  document.getElementById('del_note').value = '';
+  document.getElementById('delModal').style.display='flex';
+};
+const closeDel = () => { document.getElementById('delModal').style.display='none'; delId=null; };
+const confirmDel = () => {
+  const note = document.getElementById('del_note').value.trim();
+  if (!note) return toast('Keterangan hapus wajib diisi!','err');
+  const it = items.find(i=>i.id===delId);
+  actLog.unshift({id:Date.now(), ts:new Date().toISOString(), type:'delete', itemName:it.name, stockAtDelete:it.stock, unit:it.unit, reason:note});
+  items = items.filter(i=>i.id!==delId);
+  save(); closeDel(); toast(`Barang "${it.name}" berhasil dihapus.`); render();
+};
+
+// ── Export / Import ────────────────────────────────────────────
+const exportData = () => {
+  const data = {items,inRec,outRec,actLog,cats,units,exportedAt:new Date().toISOString()};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download = `stockpro_backup_${today()}.json`;
+  a.click();
+  toast('Data berhasil diexport!');
+};
+const importData = e => {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if(d.items)  items  = d.items;
+      if(d.inRec)  inRec  = d.inRec;
+      if(d.outRec) outRec = d.outRec;
+      if(d.actLog) actLog = d.actLog;
+      if(d.cats)   cats   = d.cats;
+      if(d.units)  units  = d.units;
+      save(); toast('Data berhasil diimport!'); render();
+    } catch { toast('File tidak valid!','err'); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+};
+
+// ── Live search (tanpa full re-render) ────────────────────────
+const renderMain = () => {
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, summary:pageSummary, manage:pageManage, settings:pageSettings };
+  document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
+};
+
+// ── Init ───────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
