@@ -77,14 +77,17 @@ tr:nth-child(even) td{background:#fafafa}
 .badge-low{background:#fee2e2;color:#ef4444}
 .badge-in{background:#22c55e;color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
 .badge-out{background:#f59e0b;color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-opname{background:#0ea5e9;color:#fff;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:700}
 .badge-edit{background:#6366f1;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .badge-del{background:#ef4444;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-audit{background:#0f766e;color:#fff;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700}
 .change-chip{font-size:12px;color:#475569;background:#fff;padding:3px 8px;border-radius:6px;display:inline-block;margin:2px;border:1px solid #e2e8f0}
 
 /* History cards */
 .hist-card{border-radius:10px;padding:12px 14px;margin-bottom:10px}
 .hist-in{background:#f0fdf4;border:1px solid #bbf7d0}
 .hist-out{background:#fff7ed;border:1px solid #fed7aa}
+.hist-opname{background:#eff6ff;border:1px solid #bfdbfe}
 .hist-del{background:#fff1f2;border:1px solid #fecdd3}
 .hist-edit{background:#f0f9ff;border:1px solid #bae6fd}
 .hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
@@ -109,12 +112,16 @@ tr:nth-child(even) td{background:#fafafa}
 .tx-row{display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:10px;margin-bottom:8px}
 .tx-row-in{background:#f0fdf4;border:1px solid #bbf7d0}
 .tx-row-out{background:#fff7ed;border:1px solid #fed7aa}
+.tx-row-opname{background:#eff6ff;border:1px solid #bfdbfe}
 .tx-info{flex:1;font-size:13px}
 .tx-info .tx-name{font-weight:700}
 .tx-info .tx-meta{color:#64748b;font-size:12px}
 .tx-right{text-align:right}
 .tx-right .tx-amt{font-weight:800;font-size:14px}
 .tx-right .tx-date{font-size:11px;color:#94a3b8}
+.delta-pos{color:#16a34a}
+.delta-neg{color:#ef4444}
+.delta-zero{color:#475569}
 
 /* Master list */
 .tag-list{display:flex;flex-wrap:wrap;gap:8px}
@@ -208,13 +215,14 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
 
 <script>
 // ── State ──────────────────────────────────────────────────────
-const LS = { items:'sp_items', inRec:'sp_in', outRec:'sp_out', actLog:'sp_log', cats:'sp_cats', units:'sp_units' };
+const LS = { items:'sp_items', inRec:'sp_in', outRec:'sp_out', opRec:'sp_opname', actLog:'sp_log', cats:'sp_cats', units:'sp_units' };
 const lg = (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } };
 const ls = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
 
 let items   = lg(LS.items, []);
 let inRec   = lg(LS.inRec, []);
 let outRec  = lg(LS.outRec, []);
+let opRec   = lg(LS.opRec, []);
 let actLog  = lg(LS.actLog, []);
 let cats    = lg(LS.cats, []);
 let units   = lg(LS.units, []);
@@ -224,13 +232,16 @@ let delId   = null;
 let searchSummary = '';
 let searchManage  = '';
 
-const save = () => { ls(LS.items,items); ls(LS.inRec,inRec); ls(LS.outRec,outRec); ls(LS.actLog,actLog); ls(LS.cats,cats); ls(LS.units,units); };
+const save = () => { ls(LS.items,items); ls(LS.inRec,inRec); ls(LS.outRec,outRec); ls(LS.opRec,opRec); ls(LS.actLog,actLog); ls(LS.cats,cats); ls(LS.units,units); };
 
 // ── Helpers ────────────────────────────────────────────────────
 const fmt   = d => new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 const today = () => new Date().toISOString().slice(0,10);
 const fmtRp = n => 'Rp ' + Number(n).toLocaleString('id-ID');
 const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escAttr = s => esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const diffClass = n => n>0 ? 'delta-pos' : n<0 ? 'delta-neg' : 'delta-zero';
+const fmtDiff = n => `${n>0?'+':n<0?'':''}${n}`;
 
 const fuzzy = (str, pat) => {
   if (!pat) return true;
@@ -263,6 +274,7 @@ const NAV = [
   {key:'dashboard', label:'Dashboard',     icon:'📊'},
   {key:'in',        label:'Barang Masuk',  icon:'📥'},
   {key:'out',       label:'Barang Keluar', icon:'📤'},
+  {key:'opname',    label:'Stok Opname',   icon:'🧮'},
   {key:'summary',   label:'Ringkasan',     icon:'📋'},
   {key:'manage',    label:'Kelola Barang', icon:'⚙️'},
   {key:'settings',  label:'Pengaturan',    icon:'🛠️'},
@@ -280,7 +292,7 @@ const go = p => { page=p; render(); };
 // ── Render ─────────────────────────────────────────────────────
 const render = () => {
   renderNav();
-  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, summary:pageSummary, manage:pageManage, settings:pageSettings };
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, manage:pageManage, settings:pageSettings };
   document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
 };
 
@@ -369,7 +381,7 @@ const pageIn = () => {
       <div class="field"><label>Supplier / Sumber</label>
         <select id="f_supId" onchange="onSupSelect()">
           <option value="">-- Pilih Supplier --</option>
-          ${supList.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('')}
+          ${supList.map(s=>`<option value="${escAttr(s)}">${esc(s)}</option>`).join('')}
           <option value="__new__">➕ Tambah Supplier Baru...</option>
         </select>
       </div>
@@ -414,22 +426,34 @@ const submitIn = () => {
   const supId   = document.getElementById('f_supId').value;
   const supplier= supId==='__new__' ? (document.getElementById('f_newSup')||{value:''}).value.trim() : supId;
   const qty     = Number(document.getElementById('f_qty').value);
-  const price   = Number(document.getElementById('f_price').value)||0;
+  const priceRaw= document.getElementById('f_price').value.trim();
+  const price   = priceRaw==='' ? null : Number(priceRaw);
   const date    = document.getElementById('f_date').value;
   const note    = document.getElementById('f_note').value;
 
   if (!itemId)                      return toast('Pilih atau tambah barang!','err');
   if (itemId==='__new__' && !name)  return toast('Nama barang wajib diisi!','err');
+  if (itemId==='__new__' && (!category || !unit)) return toast('Kategori dan satuan barang baru wajib dipilih!','err');
   if (!qty || qty<=0)               return toast('Jumlah harus lebih dari 0!','err');
+  if (price!==null && price<0)      return toast('Harga tidak boleh negatif!','err');
   if (supId==='__new__' && !supplier) return toast('Nama supplier wajib diisi!','err');
 
-  inRec.unshift({id:Date.now(), name, category, qty, unit, price, supplier, date, note});
   if (isEx) {
-    items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock+qty,price}:i);
+    const finalPrice = price===null ? (res.price||0) : price;
+    inRec.unshift({id:Date.now(), itemId:res.id, name, category, qty, unit, price:finalPrice, supplier, date, note});
+    items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock+qty,price:finalPrice}:i);
   } else {
     const ex = items.find(i=>i.name.toLowerCase()===name.toLowerCase());
-    if (ex) items = items.map(i=>i.name.toLowerCase()===name.toLowerCase()?{...i,stock:i.stock+qty,price}:i);
-    else items.push({id:Date.now()+1, name, category, stock:qty, unit, minStock:10, price});
+    if (ex) {
+      const finalPrice = price===null ? (ex.price||0) : price;
+      inRec.unshift({id:Date.now(), itemId:ex.id, name:ex.name, category:ex.category, qty, unit:ex.unit, price:finalPrice, supplier, date, note});
+      items = items.map(i=>i.id===ex.id?{...i,stock:i.stock+qty,price:finalPrice}:i);
+    } else {
+      const newId = Date.now()+1;
+      const finalPrice = price===null ? 0 : price;
+      inRec.unshift({id:Date.now(), itemId:newId, name, category, qty, unit, price:finalPrice, supplier, date, note});
+      items.push({id:newId, name, category, stock:qty, unit, minStock:10, price:finalPrice});
+    }
   }
   save(); toast('Barang masuk berhasil dicatat!'); render();
 };
@@ -479,34 +503,161 @@ const submitOut = () => {
   const item = items.find(i=>i.id===Number(itemId));
   if (!item) return toast('Barang tidak ditemukan!','err');
   if (qty>item.stock) return toast(`Stok tidak cukup! Tersedia: ${item.stock} ${item.unit}`,'err');
-  outRec.unshift({id:Date.now(), name:item.name, category:item.category, qty, unit:item.unit, recipient, date, note});
+  outRec.unshift({id:Date.now(), itemId:item.id, name:item.name, category:item.category, qty, unit:item.unit, recipient, date, note});
   items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock-qty}:i);
   save(); toast('Barang keluar berhasil dicatat!'); render();
+};
+
+// ── STOK OPNAME ────────────────────────────────────────────────
+const pageOpname = () => {
+  const mismatchCount = opRec.filter(r=>r.diff!==0).length;
+  const plusAdj = opRec.filter(r=>r.diff>0).reduce((s,r)=>s+r.diff,0);
+  const minusAdj = opRec.filter(r=>r.diff<0).reduce((s,r)=>s+Math.abs(r.diff),0);
+  return `
+  <div class="page-title">🧮 Input & Report Stok Opname</div>
+  <div class="page-sub">Cocokkan stok sistem dengan stok fisik lalu simpan hasil penyesuaian</div>
+  <div class="three-col">
+    ${[
+      {l:'Total Opname',v:opRec.length,sub:`Selisih ditemukan: ${mismatchCount}`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
+      {l:'Penyesuaian Naik',v:`+${plusAdj}`,sub:'Unit yang menambah stok sistem',g:'linear-gradient(135deg,#22c55e,#16a34a)'},
+      {l:'Penyesuaian Turun',v:`-${minusAdj}`,sub:'Unit yang mengurangi stok sistem',g:'linear-gradient(135deg,#f97316,#ef4444)'},
+    ].map(c=>`<div class="sum-card" style="background:${c.g}">
+      <div class="s-lbl">${c.l}</div><div class="s-val">${c.v}</div><div class="s-sub">${c.sub}</div>
+    </div>`).join('')}
+  </div>
+  <div class="two-col">
+    <div class="panel"><div class="panel-head">Form Stok Opname</div><div class="panel-body">
+      <div class="field"><label>Pilih Barang *</label>
+        <select id="op_itemId" onchange="updateOpnamePreview()">
+          <option value="">-- Pilih Barang --</option>
+          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok sistem: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+        </select>
+      </div>
+      <div id="op_preview" class="warn-box" style="display:none"></div>
+      <div class="row2">
+        <div class="field"><label>Stok Fisik *</label><input type="number" min="0" id="op_actual" placeholder="hasil hitung fisik" oninput="updateOpnamePreview()"></div>
+        <div class="field"><label>Tanggal</label><input type="date" id="op_date" value="${today()}"></div>
+      </div>
+      <div class="field"><label>Alasan / Keterangan Opname *</label><input id="op_reason" placeholder="contoh: stok opname bulanan, koreksi selisih gudang"></div>
+      <div class="field"><label>Catatan Tambahan</label><textarea id="op_note" rows="3"></textarea></div>
+      <button class="btn-primary" onclick="submitOpname()">+ Simpan Hasil Opname</button>
+    </div></div>
+    <div class="panel"><div class="panel-head">Riwayat Opname (${opRec.length})</div><div class="panel-body">
+      ${opRec.length===0?'<div class="empty">Belum ada data stok opname.</div>':
+      `<div class="hist-scroll">${opRec.map(r=>`
+        <div class="hist-card hist-opname">
+          <div class="hist-head"><span class="hist-name">${esc(r.itemName)}</span><span class="badge-opname">${fmtDiff(r.diff)} ${esc(r.unit)}</span></div>
+          <div class="hist-meta">
+            <span>📁 ${esc(r.category)}</span>
+            <span>📅 ${fmt(r.date)}</span>
+            <span>🖥️ Sistem: ${r.systemStock} ${esc(r.unit)}</span>
+            <span>📦 Fisik: ${r.actualStock} ${esc(r.unit)}</span>
+          </div>
+          <div style="font-size:12px;font-weight:700;margin-top:6px" class="${diffClass(r.diff)}">Selisih opname: ${fmtDiff(r.diff)} ${esc(r.unit)}</div>
+          <div style="font-size:12px;color:#1e40af;font-weight:600;margin-top:6px">📋 Alasan: ${esc(r.reason)}</div>
+          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+        </div>`).join('')}</div>`}
+    </div></div>
+  </div>`;
+};
+
+const updateOpnamePreview = () => {
+  const wrap = document.getElementById('op_preview');
+  if (!wrap) return;
+  const itemId = document.getElementById('op_itemId').value;
+  const actualRaw = document.getElementById('op_actual').value.trim();
+  if (!itemId) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  const item = items.find(i=>i.id===Number(itemId));
+  if (!item) return;
+  const actual = actualRaw==='' ? null : Number(actualRaw);
+  const diff = actual===null || Number.isNaN(actual) ? null : actual - item.stock;
+  wrap.style.display = 'block';
+  wrap.innerHTML = `
+    <div class="warn-title">📌 Preview Penyesuaian</div>
+    <div style="font-size:13px;color:#334155;line-height:1.6">
+      <div><strong>${esc(item.name)}</strong> saat ini tercatat <strong>${item.stock} ${esc(item.unit)}</strong>.</div>
+      <div>${diff===null?'Masukkan stok fisik untuk melihat selisih opname.':`Jika disimpan, stok akan disesuaikan menjadi <strong>${actual} ${esc(item.unit)}</strong> dengan selisih <strong class="${diffClass(diff)}">${fmtDiff(diff)} ${esc(item.unit)}</strong>.`}</div>
+    </div>`;
+};
+
+const submitOpname = () => {
+  const itemId = document.getElementById('op_itemId').value;
+  const actualRaw = document.getElementById('op_actual').value.trim();
+  const actualStock = Number(actualRaw);
+  const date = document.getElementById('op_date').value;
+  const reason = document.getElementById('op_reason').value.trim();
+  const note = document.getElementById('op_note').value.trim();
+  if (!itemId) return toast('Pilih barang untuk stok opname!','err');
+  if (actualRaw==='' || Number.isNaN(actualStock) || actualStock<0) return toast('Stok fisik harus 0 atau lebih!','err');
+  if (!reason) return toast('Alasan opname wajib diisi!','err');
+  const item = items.find(i=>i.id===Number(itemId));
+  if (!item) return toast('Barang tidak ditemukan!','err');
+  const diff = actualStock - item.stock;
+  const record = {
+    id: Date.now(),
+    itemId: item.id,
+    itemName: item.name,
+    category: item.category,
+    unit: item.unit,
+    date,
+    systemStock: item.stock,
+    actualStock,
+    diff,
+    reason,
+    note
+  };
+  opRec.unshift(record);
+  actLog.unshift({
+    id: Date.now()+1,
+    ts: new Date().toISOString(),
+    type: 'opname',
+    itemName: item.name,
+    systemStock: item.stock,
+    actualStock,
+    diff,
+    unit: item.unit,
+    reason,
+    note
+  });
+  items = items.map(i=>i.id===item.id?{...i,stock:actualStock}:i);
+  save();
+  toast(diff===0 ? 'Opname tercatat tanpa selisih stok.' : 'Stok opname berhasil disimpan dan stok diperbarui!');
+  render();
 };
 
 // ── RINGKASAN ──────────────────────────────────────────────────
 const pageSummary = () => {
   const totalIn  = inRec.reduce((s,r)=>s+r.qty,0);
   const totalOut = outRec.reduce((s,r)=>s+r.qty,0);
+  const totalAdj = opRec.reduce((s,r)=>s+r.diff,0);
   const fItems   = items.filter(i=>fuzzy(i.name,searchSummary)||fuzzy(i.category,searchSummary));
-  const fTx      = [...inRec.map(r=>({...r,type:'in'})),...outRec.map(r=>({...r,type:'out'}))]
+  const fTx      = [
+    ...inRec.map(r=>({...r,type:'in'})),
+    ...outRec.map(r=>({...r,type:'out'})),
+    ...opRec.map(r=>({...r,name:r.itemName,qty:Math.abs(r.diff),type:'opname'}))
+  ]
     .sort((a,b)=>b.id-a.id)
-    .filter(r=>fuzzy(r.name,searchSummary)||fuzzy(r.category,searchSummary)||fuzzy(r.supplier||'',searchSummary)||fuzzy(r.recipient||'',searchSummary));
+    .filter(r=>fuzzy(r.name,searchSummary)||fuzzy(r.category,searchSummary)||fuzzy(r.supplier||'',searchSummary)||fuzzy(r.recipient||'',searchSummary)||fuzzy(r.reason||'',searchSummary));
   return `
   <div class="page-title">📋 Ringkasan & Laporan</div>
   <div class="page-sub">Rekap keseluruhan transaksi stok</div>
-  <div class="three-col">
+  <div class="stat-grid" style="margin-bottom:28px">
     ${[
-      {l:'Total Transaksi', v:inRec.length+outRec.length, sub:`Masuk: ${inRec.length} | Keluar: ${outRec.length}`, g:'linear-gradient(135deg,#6366f1,#8b5cf6)'},
+      {l:'Total Transaksi', v:inRec.length+outRec.length+opRec.length, sub:`Masuk: ${inRec.length} | Keluar: ${outRec.length} | Opname: ${opRec.length}`, g:'linear-gradient(135deg,#6366f1,#8b5cf6)'},
       {l:'Total Unit Masuk', v:totalIn,  sub:`dari ${inRec.length} transaksi`,  g:'linear-gradient(135deg,#0ea5e9,#22c55e)'},
       {l:'Total Unit Keluar',v:totalOut, sub:`dari ${outRec.length} transaksi`, g:'linear-gradient(135deg,#f59e0b,#ef4444)'},
+      {l:'Net Opname',v:fmtDiff(totalAdj),sub:`selisih total dari ${opRec.length} opname`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
     ].map(c=>`<div class="sum-card" style="background:${c.g}">
       <div class="s-lbl">${c.l}</div><div class="s-val">${c.v}</div><div class="s-sub">${c.sub}</div>
     </div>`).join('')}
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input value="${esc(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima...">
+    <input value="${escAttr(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima, alasan opname...">
     ${searchSummary?`<button class="search-clear" onclick="searchSummary='';render()">✕</button>`:''}
   </div>
   <div class="panel">
@@ -516,8 +667,8 @@ const pageSummary = () => {
     <table>
       <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Total Masuk</th><th>Total Keluar</th><th>Stok Saat Ini</th><th>Status</th></tr></thead>
       <tbody>${fItems.map(it=>{
-        const tIn=inRec.filter(r=>r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
-        const tOut=outRec.filter(r=>r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
+        const tIn=inRec.filter(r=>r.itemId===it.id||r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
+        const tOut=outRec.filter(r=>r.itemId===it.id||r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
         const isLow=it.stock<=it.minStock;
         return`<tr>
           <td><strong>${hl(it.name,searchSummary)}</strong></td>
@@ -535,17 +686,18 @@ const pageSummary = () => {
     <div class="panel-body">
     ${fTx.length===0?`<div class="empty">${searchSummary?`Tidak ada transaksi cocok "${esc(searchSummary)}"`:'Belum ada transaksi.'}</div>`:
     fTx.map(r=>`
-      <div class="tx-row ${r.type==='in'?'tx-row-in':'tx-row-out'}">
-        <span style="font-size:18px">${r.type==='in'?'📥':'📤'}</span>
+      <div class="tx-row ${r.type==='in'?'tx-row-in':r.type==='out'?'tx-row-out':'tx-row-opname'}">
+        <span style="font-size:18px">${r.type==='in'?'📥':r.type==='out'?'📤':'🧮'}</span>
         <div class="tx-info">
           <span class="tx-name">${hl(r.name,searchSummary)}</span>
           <span class="tx-meta"> ${hl(r.category,searchSummary)}</span>
           ${r.type==='in'&&r.supplier?`<span class="tx-meta"> • 🏭 ${hl(r.supplier,searchSummary)}</span>`:''}
           ${r.type==='out'&&r.recipient?`<span class="tx-meta"> • 👤 ${hl(r.recipient,searchSummary)}</span>`:''}
+          ${r.type==='opname'&&r.reason?`<span class="tx-meta"> • 📋 ${hl(r.reason,searchSummary)}</span>`:''}
           ${r.note?`<span style="color:#94a3b8;font-size:12px;font-style:italic"> • ${esc(r.note)}</span>`:''}
         </div>
         <div class="tx-right">
-          <div class="tx-amt" style="color:${r.type==='in'?'#22c55e':'#f59e0b'}">${r.type==='in'?'+':'-'}${r.qty} ${esc(r.unit)}</div>
+          <div class="tx-amt ${r.type==='opname'?diffClass(r.diff):''}" style="color:${r.type==='in'?'#22c55e':r.type==='out'?'#f59e0b':'inherit'}">${r.type==='opname'?`${fmtDiff(r.diff)} ${esc(r.unit)}`:`${r.type==='in'?'+':'-'}${r.qty} ${esc(r.unit)}`}</div>
           <div class="tx-date">${fmt(r.date)}</div>
         </div>
       </div>`).join('')}
@@ -561,7 +713,7 @@ const pageManage = () => {
   <div class="page-sub">Edit atau hapus data barang. Setiap perubahan dicatat di audit trail.</div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input value="${esc(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
+    <input value="${escAttr(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
     ${searchManage?`<button class="search-clear" onclick="searchManage='';render()">✕</button>`:''}
   </div>
   <div class="panel">
@@ -589,13 +741,14 @@ const pageManage = () => {
     <div class="panel-body">
     ${actLog.length===0?'<div class="empty">Belum ada aktivitas edit atau hapus.</div>':
     actLog.map(a=>`
-      <div class="hist-card ${a.type==='delete'?'hist-del':'hist-edit'}">
+      <div class="hist-card ${a.type==='delete'?'hist-del':a.type==='opname'?'hist-opname':'hist-edit'}">
         <div class="hist-head">
-          <div><span class="${a.type==='delete'?'badge-del':'badge-edit'}">${a.type==='delete'?'🗑️ HAPUS':'✏️ EDIT'}</span> <span style="font-weight:700">${esc(a.itemName)}</span></div>
+          <div><span class="${a.type==='delete'?'badge-del':a.type==='opname'?'badge-audit':'badge-edit'}">${a.type==='delete'?'🗑️ HAPUS':a.type==='opname'?'🧮 OPNAME':'✏️ EDIT'}</span> <span style="font-weight:700">${esc(a.itemName)}</span></div>
           <span style="font-size:11px;color:#94a3b8">${new Date(a.ts).toLocaleString('id-ID')}</span>
         </div>
         ${a.type==='edit'?(a.changes||[]).map(ch=>`<span class="change-chip">🔄 ${esc(ch)}</span>`).join(''):''}
         ${a.type==='delete'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">Stok saat dihapus: <strong>${a.stockAtDelete} ${esc(a.unit)}</strong></div>`:''}
+        ${a.type==='opname'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">Stok sistem <strong>${a.systemStock} ${esc(a.unit)}</strong> disesuaikan ke stok fisik <strong>${a.actualStock} ${esc(a.unit)}</strong> dengan selisih <strong class="${diffClass(a.diff)}">${fmtDiff(a.diff)} ${esc(a.unit)}</strong></div>`:''}
         <div style="font-size:12px;color:#1e40af;font-weight:600;margin-top:6px">📋 Alasan: ${esc(a.reason)}</div>
         ${a.note?`<div class="hist-note">📝 ${esc(a.note)}</div>`:''}
       </div>`).join('')}
@@ -622,7 +775,7 @@ const masterList = (title, icon, arr, type, ph) => `
       <button class="btn-primary" style="width:auto;padding:9px 16px;margin:0" onclick="addMaster('${type}')">+ Tambah</button>
     </div>
     ${arr.length===0?'<div class="empty" style="padding:20px 0">Belum ada data. Tambahkan di atas.</div>':
-    `<div class="tag-list">${arr.map(v=>`<div class="tag-item">${esc(v)}<button onclick="delMaster('${type}','${esc(v)}')" title="Hapus">✕</button></div>`).join('')}</div>`}
+    `<div class="tag-list">${arr.map((v,idx)=>`<div class="tag-item">${esc(v)}<button onclick="delMasterAt('${type}',${idx})" title="Hapus">✕</button></div>`).join('')}</div>`}
   </div></div>`;
 
 const addMaster = type => {
@@ -638,7 +791,10 @@ const addMaster = type => {
   save(); render();
 };
 
-const delMaster = (type, v) => {
+const delMasterAt = (type, idx) => {
+  const arr = type==='cat' ? cats : units;
+  const v = arr[idx];
+  if (v===undefined) return;
   if (type==='cat') {
     if (items.some(i=>i.category===v)) return toast(`Kategori "${v}" masih digunakan!`,'err');
     cats = cats.filter(c=>c!==v); toast(`Kategori "${v}" dihapus.`);
@@ -665,6 +821,7 @@ const openEdit = id => {
   const unitSel = document.getElementById('e_unit');
   catSel.innerHTML  = cats.map(c=>`<option ${c===it.category?'selected':''}>${esc(c)}</option>`).join('');
   unitSel.innerHTML = units.map(u=>`<option ${u===it.unit?'selected':''}>${esc(u)}</option>`).join('');
+  if (!cats.includes(it.category)) catSel.innerHTML += `<option selected>${esc(it.category)}</option>`;
   if (!units.includes(it.unit)) unitSel.innerHTML += `<option selected>${esc(it.unit)}</option>`;
   document.getElementById('editModal').style.display='flex';
 };
@@ -679,6 +836,10 @@ const saveEdit  = () => {
   const reason  = document.getElementById('e_reason').value.trim();
   const note    = document.getElementById('e_note').value.trim();
   if (!name)   return toast('Nama tidak boleh kosong!','err');
+  if (!cat || !unit) return toast('Kategori dan satuan wajib diisi!','err');
+  if (Number.isNaN(stock) || stock<0) return toast('Stok tidak boleh negatif!','err');
+  if (Number.isNaN(minStock) || minStock<0) return toast('Min stok tidak boleh negatif!','err');
+  if (price<0) return toast('Harga tidak boleh negatif!','err');
   if (!reason) return toast('Alasan perubahan wajib diisi!','err');
   const orig = items.find(i=>i.id===editId);
   const changes = [];
@@ -714,7 +875,7 @@ const confirmDel = () => {
 
 // ── Export / Import ────────────────────────────────────────────
 const exportData = () => {
-  const data = {items,inRec,outRec,actLog,cats,units,exportedAt:new Date().toISOString()};
+  const data = {items,inRec,outRec,opRec,actLog,cats,units,exportedAt:new Date().toISOString()};
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
   a.download = `stockpro_backup_${today()}.json`;
@@ -727,12 +888,13 @@ const importData = e => {
   r.onload = ev => {
     try {
       const d = JSON.parse(ev.target.result);
-      if(d.items)  items  = d.items;
-      if(d.inRec)  inRec  = d.inRec;
-      if(d.outRec) outRec = d.outRec;
-      if(d.actLog) actLog = d.actLog;
-      if(d.cats)   cats   = d.cats;
-      if(d.units)  units  = d.units;
+      if(Array.isArray(d.items))  items  = d.items;
+      if(Array.isArray(d.inRec))  inRec  = d.inRec;
+      if(Array.isArray(d.outRec)) outRec = d.outRec;
+      if(Array.isArray(d.opRec))  opRec  = d.opRec;
+      if(Array.isArray(d.actLog)) actLog = d.actLog;
+      if(Array.isArray(d.cats))   cats   = d.cats;
+      if(Array.isArray(d.units))  units  = d.units;
       save(); toast('Data berhasil diimport!'); render();
     } catch { toast('File tidak valid!','err'); }
   };
@@ -742,7 +904,7 @@ const importData = e => {
 
 // ── Live search (tanpa full re-render) ────────────────────────
 const renderMain = () => {
-  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, summary:pageSummary, manage:pageManage, settings:pageSettings };
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, manage:pageManage, settings:pageSettings };
   document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
 };
 
