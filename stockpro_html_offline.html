@@ -593,9 +593,9 @@ const downloadBulkTemplate = type => {
   toast(`Template CSV ${name.replace(/_/g,' ')} berhasil didownload.`);
 };
 
+const getCsvGuideUrl = () => new URL('panduan_bulk_import_csv.md', window.location.href).href;
 const openCsvGuide = () => {
-  const url = new URL('panduan_bulk_import_csv.md', window.location.href).href;
-  window.open(url, '_blank', 'noopener');
+  window.location.assign(getCsvGuideUrl());
 };
 
 const importBulkCsv = (e, type) => {
@@ -1062,7 +1062,8 @@ const pageIn = () => {
         nama_barang_existing dipakai jika barang sudah ada
         nama_barang_baru, kategori_barang_baru, satuan_barang_baru dipakai jika barang baru
       </div>
-      <div style="margin-bottom:14px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:8px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:14px;font-size:12px"><a href="${escAttr(getCsvGuideUrl())}" target="_blank" rel="noopener">Buka panduan di tab baru</a></div>
       <div class="line-builder" id="in_rows">
         ${draftIn.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
@@ -1198,7 +1199,8 @@ const pageOut = () => {
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('out')">⬇️ Download Template CSV</button>
         <label class="btn-cancel" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Import Bulk CSV<input type="file" accept=".csv" onchange="importBulkCsv(event,'out')" style="display:none"></label>
       </div>
-      <div style="margin-bottom:14px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:8px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:14px;font-size:12px"><a href="${escAttr(getCsvGuideUrl())}" target="_blank" rel="noopener">Buka panduan di tab baru</a></div>
       <div class="line-builder" id="out_rows">
         ${draftOut.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
@@ -1302,7 +1304,8 @@ const pageOpname = () => {
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('opname')">⬇️ Download Template CSV</button>
         <label class="btn-cancel" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Import Bulk CSV<input type="file" accept=".csv" onchange="importBulkCsv(event,'opname')" style="display:none"></label>
       </div>
-      <div style="margin-bottom:14px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:8px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
+      <div style="margin-bottom:14px;font-size:12px"><a href="${escAttr(getCsvGuideUrl())}" target="_blank" rel="noopener">Buka panduan di tab baru</a></div>
       <div class="line-builder" id="op_rows">
         ${draftOp.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
