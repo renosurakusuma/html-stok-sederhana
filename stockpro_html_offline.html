@@ -488,7 +488,7 @@ const applyImportedState = data => {
 };
 
 const BULK_HEADERS = {
-  in: ['kode_transaksi','tanggal','supplier','nama_barang','kategori','satuan','jumlah','harga_satuan','keterangan'],
+  in: ['kode_transaksi','tanggal','supplier','tipe_barang','nama_barang_existing','nama_barang_baru','kategori_barang_baru','satuan_barang_baru','jumlah','harga_satuan','keterangan'],
   out: ['kode_transaksi','tanggal','tujuan_penerima','nama_barang','jumlah','keterangan','stok_saat_ini','satuan'],
   opname: ['kode_sesi','tanggal','alasan_opname','nama_barang','stok_sistem','stok_fisik','satuan','catatan']
 };
@@ -521,9 +521,11 @@ const buildBulkTemplateRows = type => {
       kode_transaksi: idx<2 ? `IN-${today()}-A` : `IN-${today()}-R${idx+1}`,
       tanggal: today(),
       supplier: '',
-      nama_barang: it.name,
-      kategori: it.category,
-      satuan: it.unit,
+      tipe_barang: 'existing',
+      nama_barang_existing: it.name,
+      nama_barang_baru: '',
+      kategori_barang_baru: '',
+      satuan_barang_baru: '',
       jumlah: '',
       harga_satuan: it.price || '',
       keterangan: ''
@@ -531,9 +533,11 @@ const buildBulkTemplateRows = type => {
       kode_transaksi: `IN-${today()}-A`,
       tanggal: today(),
       supplier: 'PT Contoh Supplier',
-      nama_barang: 'Contoh Barang',
-      kategori: cats[0] || 'ATK',
-      satuan: units[0] || 'pcs',
+      tipe_barang: 'existing',
+      nama_barang_existing: 'Contoh Barang',
+      nama_barang_baru: '',
+      kategori_barang_baru: '',
+      satuan_barang_baru: '',
       jumlah: '',
       harga_satuan: '',
       keterangan: 'isi jumlah lalu import'
@@ -542,9 +546,11 @@ const buildBulkTemplateRows = type => {
       kode_transaksi: `IN-${today()}-BARU`,
       tanggal: today(),
       supplier: '',
-      nama_barang: '',
-      kategori: cats[0] || '',
-      satuan: units[0] || '',
+      tipe_barang: 'baru',
+      nama_barang_existing: '',
+      nama_barang_baru: '',
+      kategori_barang_baru: cats[0] || '',
+      satuan_barang_baru: units[0] || '',
       jumlah: '',
       harga_satuan: '',
       keterangan: 'tambahkan baris baru untuk barang yang belum ada'
@@ -619,9 +625,11 @@ const importBulkInRows = rows => {
     const date = bulkCell(validRows[0],'tanggal') || today();
     const lines = [];
     validRows.forEach((row, idx) => {
-      const name = bulkCell(row,'nama_barang');
-      const category = bulkCell(row,'kategori');
-      const unit = bulkCell(row,'satuan');
+      const typeRaw = bulkCell(row,'tipe_barang').toLowerCase();
+      const isNew = typeRaw === 'baru' || (!bulkCell(row,'nama_barang_existing') && !!bulkCell(row,'nama_barang_baru'));
+      const name = isNew ? bulkCell(row,'nama_barang_baru') : (bulkCell(row,'nama_barang_existing') || bulkCell(row,'nama_barang'));
+      const category = isNew ? bulkCell(row,'kategori_barang_baru') : bulkCell(row,'kategori');
+      const unit = isNew ? bulkCell(row,'satuan_barang_baru') : bulkCell(row,'satuan');
       const qty = toNum(bulkCell(row,'jumlah'), 0);
       const priceRaw = bulkCell(row,'harga_satuan');
       const price = priceRaw==='' ? null : toNum(priceRaw, NaN);
@@ -1037,12 +1045,19 @@ const pageIn = () => {
       <div class="field"><label>Keterangan Transaksi</label><textarea id="f_note" rows="3">${esc(draftIn.note)}</textarea></div>
       <div class="warn-box">
         <div class="warn-title">Bulk Upload CSV Barang Masuk</div>
-        <div style="font-size:12px;color:#713f12;line-height:1.6">Download template dari data barang yang sudah ada, isi kolom jumlah, lalu import kembali. Untuk barang baru, tambahkan baris baru dan isi nama_barang, kategori, serta satuan.</div>
+        <div style="font-size:12px;color:#713f12;line-height:1.6">Gunakan kolom per kolom yang jelas. Untuk barang lama, isi tipe_barang = existing dan nama_barang_existing. Untuk barang baru, isi tipe_barang = baru lalu isi nama_barang_baru, kategori_barang_baru, dan satuan_barang_baru.</div>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('in')">⬇️ Download Template CSV</button>
         <label class="btn-cancel" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Import Bulk CSV<input type="file" accept=".csv" onchange="importBulkCsv(event,'in')" style="display:none"></label>
       </div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:14px;line-height:1.7">
+        Kolom penting:
+        tipe_barang = existing atau baru
+        nama_barang_existing dipakai jika barang sudah ada
+        nama_barang_baru, kategori_barang_baru, satuan_barang_baru dipakai jika barang baru
+      </div>
+      <div style="margin-bottom:14px"><a href="panduan_bulk_import_csv.md" target="_blank" class="btn-cancel" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">📘 Lihat Panduan CSV</a></div>
       <div class="line-builder" id="in_rows">
         ${draftIn.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
@@ -1178,6 +1193,7 @@ const pageOut = () => {
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('out')">⬇️ Download Template CSV</button>
         <label class="btn-cancel" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Import Bulk CSV<input type="file" accept=".csv" onchange="importBulkCsv(event,'out')" style="display:none"></label>
       </div>
+      <div style="margin-bottom:14px"><a href="panduan_bulk_import_csv.md" target="_blank" class="btn-cancel" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">📘 Lihat Panduan CSV</a></div>
       <div class="line-builder" id="out_rows">
         ${draftOut.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
@@ -1281,6 +1297,7 @@ const pageOpname = () => {
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('opname')">⬇️ Download Template CSV</button>
         <label class="btn-cancel" style="flex:1;display:flex;align-items:center;justify-content:center;cursor:pointer">⬆️ Import Bulk CSV<input type="file" accept=".csv" onchange="importBulkCsv(event,'opname')" style="display:none"></label>
       </div>
+      <div style="margin-bottom:14px"><a href="panduan_bulk_import_csv.md" target="_blank" class="btn-cancel" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none">📘 Lihat Panduan CSV</a></div>
       <div class="line-builder" id="op_rows">
         ${draftOp.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
