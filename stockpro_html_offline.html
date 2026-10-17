@@ -53,6 +53,23 @@ main{flex:1;padding:28px;overflow-y:auto}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 .new-box{background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:14px;margin-bottom:14px}
 .new-box .new-title{font-size:12px;font-weight:700;color:#0369a1;margin-bottom:10px}
+.line-builder{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.line-row{border:1px solid #e2e8f0;border-radius:12px;padding:14px;background:#f8fafc}
+.line-row-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.line-row-title{font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.04em}
+.line-grid{display:grid;grid-template-columns:2fr 1.2fr 1fr;gap:12px}
+.line-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.line-grid-4{display:grid;grid-template-columns:1.4fr 1fr 1fr .9fr;gap:12px}
+.line-remove{background:#fff1f2;border:1px solid #fecdd3;color:#e11d48;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:700}
+.line-add{background:#eef2ff;color:#4f46e5;border:1px dashed #a5b4fc;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;width:100%}
+.batch-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.batch-lines{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.batch-line{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.72);border:1px solid #dbeafe}
+.batch-line-left{font-size:13px}
+.batch-line-name{font-weight:700}
+.batch-line-sub{font-size:12px;color:#64748b;margin-top:2px}
+.batch-line-right{text-align:right;font-size:12px}
+.batch-total{font-size:12px;color:#475569;margin-top:10px;font-weight:700}
 .warn-box{background:#fefce8;border:1px solid #fde047;border-radius:10px;padding:12px 14px;margin-bottom:14px}
 .warn-box .warn-title{font-size:12px;font-weight:700;color:#854d0e;margin-bottom:8px}
 .err-hint{font-size:12px;color:#ef4444;padding:6px 0}
@@ -127,6 +144,10 @@ tr:nth-child(even) td{background:#fafafa}
 .tag-list{display:flex;flex-wrap:wrap;gap:8px}
 .tag-item{display:flex;align-items:center;gap:6px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:20px;padding:5px 12px 5px 14px;font-size:13px}
 .tag-item button{background:none;border:none;color:#94a3b8;font-size:14px;padding:0 2px;line-height:1}
+
+@media (max-width:1100px){
+  .line-grid,.line-grid-2,.line-grid-4,.batch-meta,.three-col,.two-col,.stat-grid{grid-template-columns:1fr}
+}
 
 /* Search */
 .search-wrap{position:relative;margin-bottom:16px}
@@ -215,26 +236,47 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
 
 <script>
 // ── State ──────────────────────────────────────────────────────
-const LS = { items:'sp_items', inRec:'sp_in', outRec:'sp_out', opRec:'sp_opname', actLog:'sp_log', cats:'sp_cats', units:'sp_units' };
+const LS = {
+  items:'sp_items',
+  inRec:'sp_in',
+  outRec:'sp_out',
+  opRec:'sp_opname',
+  actLog:'sp_log',
+  cats:'sp_cats',
+  units:'sp_units',
+  recipients:'sp_recipients'
+};
 const lg = (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } };
 const ls = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
 
-let items   = lg(LS.items, []);
-let inRec   = lg(LS.inRec, []);
-let outRec  = lg(LS.outRec, []);
-let opRec   = lg(LS.opRec, []);
-let actLog  = lg(LS.actLog, []);
-let cats    = lg(LS.cats, []);
-let units   = lg(LS.units, []);
-let page    = 'dashboard';
-let editId  = null;
-let delId   = null;
+let items      = lg(LS.items, []);
+let inRec      = lg(LS.inRec, []);
+let outRec     = lg(LS.outRec, []);
+let opRec      = lg(LS.opRec, []);
+let actLog     = lg(LS.actLog, []);
+let cats       = lg(LS.cats, []);
+let units      = lg(LS.units, []);
+let recipients = lg(LS.recipients, []);
+let page       = 'dashboard';
+let editId     = null;
+let delId      = null;
 let searchSummary = '';
 let searchManage  = '';
+let seq = Date.now();
 
-const save = () => { ls(LS.items,items); ls(LS.inRec,inRec); ls(LS.outRec,outRec); ls(LS.opRec,opRec); ls(LS.actLog,actLog); ls(LS.cats,cats); ls(LS.units,units); };
+const save = () => {
+  ls(LS.items,items);
+  ls(LS.inRec,inRec);
+  ls(LS.outRec,outRec);
+  ls(LS.opRec,opRec);
+  ls(LS.actLog,actLog);
+  ls(LS.cats,cats);
+  ls(LS.units,units);
+  ls(LS.recipients,recipients);
+};
 
 // ── Helpers ────────────────────────────────────────────────────
+const nextId = () => ++seq;
 const fmt   = d => new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
 const today = () => new Date().toISOString().slice(0,10);
 const fmtRp = n => 'Rp ' + Number(n).toLocaleString('id-ID');
@@ -242,6 +284,14 @@ const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 const escAttr = s => esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const diffClass = n => n>0 ? 'delta-pos' : n<0 ? 'delta-neg' : 'delta-zero';
 const fmtDiff = n => `${n>0?'+':n<0?'':''}${n}`;
+const toNum = (v, fallback=0) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+};
+const uniqText = arr => [...new Map((Array.isArray(arr)?arr:[])
+  .map(v => String(v||'').trim())
+  .filter(Boolean)
+  .map(v => [v.toLowerCase(), v])).values()];
 
 const fuzzy = (str, pat) => {
   if (!pat) return true;
@@ -257,6 +307,131 @@ const hl = (text, query) => {
   for (let i=0;i<s.length&&pi<p.length;i++) if(s[i]===p[pi]){used.add(i);pi++;}
   return [...text].map((ch,i) => used.has(i)?`<mark>${esc(ch)}</mark>`:esc(ch)).join('');
 };
+
+const normalizeItems = arr => (Array.isArray(arr)?arr:[]).map(it => ({
+  id: toNum(it.id, nextId()),
+  name: String(it.name||'').trim(),
+  category: String(it.category||'').trim(),
+  stock: Math.max(0, toNum(it.stock, 0)),
+  unit: String(it.unit||'').trim(),
+  minStock: Math.max(0, toNum(it.minStock, 0)),
+  price: Math.max(0, toNum(it.price, 0))
+})).filter(it => it.name);
+
+const normalizeInLine = line => ({
+  itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
+  name: String(line.name||line.itemName||'').trim(),
+  category: String(line.category||'').trim(),
+  qty: Math.max(0, toNum(line.qty, 0)),
+  unit: String(line.unit||'').trim(),
+  price: Math.max(0, toNum(line.price, 0))
+});
+const normalizeOutLine = line => ({
+  itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
+  name: String(line.name||line.itemName||'').trim(),
+  category: String(line.category||'').trim(),
+  qty: Math.max(0, toNum(line.qty, 0)),
+  unit: String(line.unit||'').trim()
+});
+const normalizeOpLine = line => ({
+  itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
+  itemName: String(line.itemName||line.name||'').trim(),
+  category: String(line.category||'').trim(),
+  unit: String(line.unit||'').trim(),
+  systemStock: Math.max(0, toNum(line.systemStock, 0)),
+  actualStock: Math.max(0, toNum(line.actualStock, 0)),
+  diff: toNum(line.diff, toNum(line.actualStock, 0) - toNum(line.systemStock, 0))
+});
+
+const normalizeInRec = arr => (Array.isArray(arr)?arr:[]).map(tx => {
+  if (Array.isArray(tx.lines)) {
+    return {
+      id: toNum(tx.id, nextId()),
+      date: tx.date || today(),
+      supplier: String(tx.supplier||'').trim(),
+      note: String(tx.note||'').trim(),
+      lines: tx.lines.map(normalizeInLine).filter(line => line.name && line.qty>0)
+    };
+  }
+  const line = normalizeInLine(tx||{});
+  return {
+    id: toNum(tx&&tx.id, nextId()),
+    date: tx&&tx.date ? tx.date : today(),
+    supplier: String(tx&&tx.supplier||'').trim(),
+    note: String(tx&&tx.note||'').trim(),
+    lines: line.name && line.qty>0 ? [line] : []
+  };
+}).filter(tx => tx.lines.length).sort((a,b)=>b.id-a.id);
+
+const normalizeOutRec = arr => (Array.isArray(arr)?arr:[]).map(tx => {
+  if (Array.isArray(tx.lines)) {
+    return {
+      id: toNum(tx.id, nextId()),
+      date: tx.date || today(),
+      recipient: String(tx.recipient||'').trim(),
+      note: String(tx.note||'').trim(),
+      lines: tx.lines.map(normalizeOutLine).filter(line => line.name && line.qty>0)
+    };
+  }
+  const line = normalizeOutLine(tx||{});
+  return {
+    id: toNum(tx&&tx.id, nextId()),
+    date: tx&&tx.date ? tx.date : today(),
+    recipient: String(tx&&tx.recipient||'').trim(),
+    note: String(tx&&tx.note||'').trim(),
+    lines: line.name && line.qty>0 ? [line] : []
+  };
+}).filter(tx => tx.lines.length).sort((a,b)=>b.id-a.id);
+
+const normalizeOpRec = arr => (Array.isArray(arr)?arr:[]).map(tx => {
+  if (Array.isArray(tx.lines)) {
+    return {
+      id: toNum(tx.id, nextId()),
+      date: tx.date || today(),
+      reason: String(tx.reason||'').trim(),
+      note: String(tx.note||'').trim(),
+      lines: tx.lines.map(normalizeOpLine).filter(line => line.itemName)
+    };
+  }
+  const line = normalizeOpLine(tx||{});
+  return {
+    id: toNum(tx&&tx.id, nextId()),
+    date: tx&&tx.date ? tx.date : today(),
+    reason: String(tx&&tx.reason||'').trim(),
+    note: String(tx&&tx.note||'').trim(),
+    lines: line.itemName ? [line] : []
+  };
+}).filter(tx => tx.lines.length).sort((a,b)=>b.id-a.id);
+
+const normalizeState = () => {
+  cats = uniqText(cats);
+  units = uniqText(units);
+  recipients = uniqText(recipients);
+  items = normalizeItems(items);
+  inRec = normalizeInRec(inRec);
+  outRec = normalizeOutRec(outRec);
+  opRec = normalizeOpRec(opRec);
+  seq = Math.max(seq, ...items.map(i=>i.id||0), ...inRec.map(r=>r.id||0), ...outRec.map(r=>r.id||0), ...opRec.map(r=>r.id||0), ...actLog.map(r=>toNum(r.id,0)));
+};
+
+const getInLines = () => inRec.flatMap(tx => (tx.lines||[]).map((line, idx) => ({...line, batchId:tx.id, lineId:`${tx.id}-in-${idx}`, date:tx.date, supplier:tx.supplier||'', note:tx.note||''})));
+const getOutLines = () => outRec.flatMap(tx => (tx.lines||[]).map((line, idx) => ({...line, batchId:tx.id, lineId:`${tx.id}-out-${idx}`, date:tx.date, recipient:tx.recipient||'', note:tx.note||''})));
+const getOpLines = () => opRec.flatMap(tx => (tx.lines||[]).map((line, idx) => ({...line, batchId:tx.id, lineId:`${tx.id}-op-${idx}`, date:tx.date, reason:tx.reason||'', note:tx.note||''})));
+const getSupplierList = () => uniqText(inRec.map(tx => tx.supplier).filter(Boolean));
+const getRecipientList = () => uniqText([...(Array.isArray(recipients)?recipients:[]), ...outRec.map(tx => tx.recipient).filter(Boolean)]);
+
+const newInRow = () => ({ rowId: nextId(), itemId:'', newName:'', category:cats[0]||'', unit:units[0]||'', qty:'', price:'' });
+const newOutRow = () => ({ rowId: nextId(), itemId:'', qty:'' });
+const newOpRow = () => ({ rowId: nextId(), itemId:'', actualStock:'' });
+let draftIn, draftOut, draftOp;
+const resetDraftIn = () => { draftIn = { date:today(), supplierSelect:'', newSupplier:'', note:'', rows:[newInRow()] }; };
+const resetDraftOut = () => { draftOut = { date:today(), recipientSelect:'', newRecipient:'', note:'', rows:[newOutRow()] }; };
+const resetDraftOp = () => { draftOp = { date:today(), reason:'', note:'', rows:[newOpRow()] }; };
+
+normalizeState();
+resetDraftIn();
+resetDraftOut();
+resetDraftOp();
 
 // ── Toast ──────────────────────────────────────────────────────
 let toastTimer;
@@ -298,8 +473,8 @@ const render = () => {
 
 // ── DASHBOARD ──────────────────────────────────────────────────
 const pageDashboard = () => {
-  const totalIn  = inRec.reduce((s,r)=>s+r.qty,0);
-  const totalOut = outRec.reduce((s,r)=>s+r.qty,0);
+  const totalIn  = getInLines().reduce((s,r)=>s+r.qty,0);
+  const totalOut = getOutLines().reduce((s,r)=>s+r.qty,0);
   const low      = items.filter(i=>i.stock<=i.minStock);
   const totalVal = items.reduce((s,i)=>s+i.stock*(i.price||0),0);
   return `
@@ -345,312 +520,446 @@ const pageDashboard = () => {
 };
 
 // ── BARANG MASUK ───────────────────────────────────────────────
+const syncDraftInFromDom = () => {
+  const dateEl = document.getElementById('f_date');
+  if (!dateEl) return;
+  draftIn.date = dateEl.value || today();
+  draftIn.supplierSelect = document.getElementById('f_supId').value;
+  draftIn.newSupplier = (document.getElementById('f_newSup')||{value:''}).value;
+  draftIn.note = document.getElementById('f_note').value;
+  draftIn.rows = [...document.querySelectorAll('#in_rows .line-row')].map(row => ({
+    rowId: Number(row.dataset.rowId),
+    itemId: row.querySelector('[data-field="itemId"]').value,
+    newName: (row.querySelector('[data-field="newName"]')||{value:''}).value,
+    category: (row.querySelector('[data-field="category"]')||{value:''}).value,
+    unit: (row.querySelector('[data-field="unit"]')||{value:''}).value,
+    qty: (row.querySelector('[data-field="qty"]')||{value:''}).value,
+    price: (row.querySelector('[data-field="price"]')||{value:''}).value
+  }));
+};
+const syncDraftOutFromDom = () => {
+  const dateEl = document.getElementById('o_date');
+  if (!dateEl) return;
+  draftOut.date = dateEl.value || today();
+  draftOut.recipientSelect = document.getElementById('o_recipientSel').value;
+  draftOut.newRecipient = (document.getElementById('o_newRecipient')||{value:''}).value;
+  draftOut.note = document.getElementById('o_note').value;
+  draftOut.rows = [...document.querySelectorAll('#out_rows .line-row')].map(row => ({
+    rowId: Number(row.dataset.rowId),
+    itemId: row.querySelector('[data-field="itemId"]').value,
+    qty: (row.querySelector('[data-field="qty"]')||{value:''}).value
+  }));
+};
+const syncDraftOpFromDom = () => {
+  const dateEl = document.getElementById('op_date');
+  if (!dateEl) return;
+  draftOp.date = dateEl.value || today();
+  draftOp.reason = document.getElementById('op_reason').value;
+  draftOp.note = document.getElementById('op_note').value;
+  draftOp.rows = [...document.querySelectorAll('#op_rows .line-row')].map(row => ({
+    rowId: Number(row.dataset.rowId),
+    itemId: row.querySelector('[data-field="itemId"]').value,
+    actualStock: (row.querySelector('[data-field="actualStock"]')||{value:''}).value
+  }));
+};
+
+const inSupplierChange = val => { syncDraftInFromDom(); draftIn.supplierSelect = val; renderMain(); };
+const outRecipientChange = val => { syncDraftOutFromDom(); draftOut.recipientSelect = val; renderMain(); };
+const inRowItemChange = (rowId, val) => {
+  syncDraftInFromDom();
+  const row = draftIn.rows.find(r => r.rowId===rowId);
+  if (!row) return;
+  row.itemId = val;
+  if (val==='__new__') {
+    row.category = row.category || cats[0] || '';
+    row.unit = row.unit || units[0] || '';
+  }
+  renderMain();
+};
+const addInRow = () => { syncDraftInFromDom(); draftIn.rows.push(newInRow()); renderMain(); };
+const addOutRow = () => { syncDraftOutFromDom(); draftOut.rows.push(newOutRow()); renderMain(); };
+const addOpRow = () => { syncDraftOpFromDom(); draftOp.rows.push(newOpRow()); renderMain(); };
+const removeInRow = rowId => {
+  syncDraftInFromDom();
+  draftIn.rows = draftIn.rows.filter(r => r.rowId!==rowId);
+  if (!draftIn.rows.length) draftIn.rows = [newInRow()];
+  renderMain();
+};
+const removeOutRow = rowId => {
+  syncDraftOutFromDom();
+  draftOut.rows = draftOut.rows.filter(r => r.rowId!==rowId);
+  if (!draftOut.rows.length) draftOut.rows = [newOutRow()];
+  renderMain();
+};
+const removeOpRow = rowId => {
+  syncDraftOpFromDom();
+  draftOp.rows = draftOp.rows.filter(r => r.rowId!==rowId);
+  if (!draftOp.rows.length) draftOp.rows = [newOpRow()];
+  renderMain();
+};
+
 const pageIn = () => {
-  const supList = [...new Map(inRec.filter(r=>r.supplier).map(r=>[r.supplier.toLowerCase(),r.supplier])).values()];
+  const supList = getSupplierList();
   return `
   <div class="page-title">📥 Input Barang Masuk</div>
-  <div class="page-sub">Catat penerimaan stok barang</div>
+  <div class="page-sub">Catat penerimaan stok dalam satu transaksi untuk banyak produk sekaligus</div>
   <div class="two-col">
-    <div class="panel"><div class="panel-head">Form Barang Masuk</div><div class="panel-body">
-      <div class="field"><label>Nama Barang *</label>
-        <select id="f_itemId" onchange="onItemSelect()">
-          <option value="">-- Pilih Barang --</option>
-          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
-          <option value="__new__">➕ Tambah Barang Baru...</option>
-        </select>
-      </div>
-      <div id="newItemBox" style="display:none" class="new-box">
-        <div class="new-title">🆕 Detail Barang Baru</div>
-        <div class="field"><label>Nama Barang Baru *</label><input id="f_newName" placeholder="contoh: Sarung Tangan Nitril"></div>
-        <div class="row2">
-          <div class="field"><label>Kategori</label>
-            ${cats.length===0?'<div class="err-hint">⚠️ Belum ada kategori. Tambahkan di <b>Pengaturan</b>.</div>':
-            `<select id="f_cat">${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>`}
-          </div>
-          <div class="field"><label>Satuan</label>
-            ${units.length===0?'<div class="err-hint">⚠️ Belum ada satuan. Tambahkan di <b>Pengaturan</b>.</div>':
-            `<select id="f_unit">${units.map(u=>`<option>${esc(u)}</option>`).join('')}</select>`}
-          </div>
+    <div class="panel"><div class="panel-head">Form Barang Masuk Batch</div><div class="panel-body">
+      <div class="batch-meta">
+        <div class="field"><label>Tanggal</label><input type="date" id="f_date" value="${escAttr(draftIn.date)}"></div>
+        <div class="field"><label>Supplier / Sumber</label>
+          <select id="f_supId" onchange="inSupplierChange(this.value)">
+            <option value="" ${draftIn.supplierSelect===''?'selected':''}>-- Pilih Supplier --</option>
+            ${supList.map(s=>`<option value="${escAttr(s)}" ${draftIn.supplierSelect===s?'selected':''}>${esc(s)}</option>`).join('')}
+            <option value="__new__" ${draftIn.supplierSelect==='__new__'?'selected':''}>➕ Tambah Supplier Baru...</option>
+          </select>
         </div>
       </div>
-      <div class="row2">
-        <div class="field"><label>Jumlah *</label><input type="number" min="1" id="f_qty" placeholder="0"></div>
-        <div class="field"><label>Harga Satuan (Rp)</label><input type="number" min="0" id="f_price" placeholder="0"></div>
+      ${draftIn.supplierSelect==='__new__'?`<div class="field"><label>Nama Supplier Baru *</label><input id="f_newSup" value="${escAttr(draftIn.newSupplier)}" placeholder="contoh: PT. Maju Jaya"></div>`:''}
+      <div class="field"><label>Keterangan Transaksi</label><textarea id="f_note" rows="3">${esc(draftIn.note)}</textarea></div>
+      <div class="line-builder" id="in_rows">
+        ${draftIn.rows.map((row, idx)=>`
+          <div class="line-row" data-row-id="${row.rowId}">
+            <div class="line-row-head">
+              <div class="line-row-title">Barang ${idx+1}</div>
+              <button class="line-remove" onclick="removeInRow(${row.rowId})" ${draftIn.rows.length===1?'disabled':''}>Hapus Baris</button>
+            </div>
+            <div class="line-grid">
+              <div class="field"><label>Pilih Barang *</label>
+                <select data-field="itemId" onchange="inRowItemChange(${row.rowId},this.value)">
+                  <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                  <option value="__new__" ${row.itemId==='__new__'?'selected':''}>➕ Tambah Barang Baru...</option>
+                </select>
+              </div>
+              <div class="field"><label>Jumlah *</label><input type="number" min="1" data-field="qty" value="${escAttr(row.qty)}" placeholder="0"></div>
+              <div class="field"><label>Harga Satuan</label><input type="number" min="0" data-field="price" value="${escAttr(row.price)}" placeholder="opsional"></div>
+            </div>
+            ${row.itemId==='__new__'?`
+            <div class="new-box" style="margin-top:12px;margin-bottom:0">
+              <div class="new-title">🆕 Detail Barang Baru</div>
+              <div class="field"><label>Nama Barang Baru *</label><input data-field="newName" value="${escAttr(row.newName)}" placeholder="contoh: Sarung Tangan Nitril"></div>
+              <div class="line-grid-2">
+                <div class="field"><label>Kategori *</label>
+                  ${cats.length===0?'<div class="err-hint">⚠️ Belum ada kategori. Tambahkan di Pengaturan.</div>':
+                  `<select data-field="category">${cats.map(c=>`<option ${row.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select>`}
+                </div>
+                <div class="field"><label>Satuan *</label>
+                  ${units.length===0?'<div class="err-hint">⚠️ Belum ada satuan. Tambahkan di Pengaturan.</div>':
+                  `<select data-field="unit">${units.map(u=>`<option ${row.unit===u?'selected':''}>${esc(u)}</option>`).join('')}</select>`}
+                </div>
+              </div>
+            </div>`:''}
+          </div>`).join('')}
       </div>
-      <div class="field"><label>Tanggal</label><input type="date" id="f_date" value="${today()}"></div>
-      <div class="field"><label>Supplier / Sumber</label>
-        <select id="f_supId" onchange="onSupSelect()">
-          <option value="">-- Pilih Supplier --</option>
-          ${supList.map(s=>`<option value="${escAttr(s)}">${esc(s)}</option>`).join('')}
-          <option value="__new__">➕ Tambah Supplier Baru...</option>
-        </select>
-      </div>
-      <div id="newSupBox" style="display:none" class="field"><label>Nama Supplier Baru *</label><input id="f_newSup" placeholder="contoh: PT. Maju Jaya" style="border-color:#93c5fd"></div>
-      <div class="field"><label>Keterangan</label><textarea id="f_note" rows="3"></textarea></div>
-      <button class="btn-primary" onclick="submitIn()">+ Simpan Barang Masuk</button>
+      <button class="line-add" onclick="addInRow()">+ Tambah Baris Barang</button>
+      <button class="btn-primary" onclick="submitIn()">+ Simpan Transaksi Barang Masuk</button>
     </div></div>
-    <div class="panel"><div class="panel-head">Riwayat Barang Masuk (${inRec.length})</div><div class="panel-body">
+    <div class="panel"><div class="panel-head">Riwayat Barang Masuk (${inRec.length} transaksi)</div><div class="panel-body">
       ${inRec.length===0?'<div class="empty">Belum ada data barang masuk.</div>':
-      `<div class="hist-scroll">${inRec.map(r=>`
+      `<div class="hist-scroll">${inRec.map(tx=>`
         <div class="hist-card hist-in">
-          <div class="hist-head"><span class="hist-name">${esc(r.name)}</span><span class="badge-in">+${r.qty} ${esc(r.unit)}</span></div>
+          <div class="hist-head"><span class="hist-name">Transaksi Masuk #${tx.id}</span><span class="badge-in">${tx.lines.length} produk</span></div>
           <div class="hist-meta">
-            <span>📁 ${esc(r.category)}</span>
-            ${r.supplier?`<span>🏭 ${esc(r.supplier)}</span>`:''}
-            <span>📅 ${fmt(r.date)}</span>
-            ${r.price>0?`<span style="color:#6366f1;font-weight:600">💰 ${fmtRp(r.price)}/satuan · Total: ${fmtRp(r.price*r.qty)}</span>`:''}
+            ${tx.supplier?`<span>🏭 ${esc(tx.supplier)}</span>`:''}
+            <span>📅 ${fmt(tx.date)}</span>
           </div>
-          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+          <div class="batch-lines">${tx.lines.map(line=>`
+            <div class="batch-line">
+              <div class="batch-line-left">
+                <div class="batch-line-name">${esc(line.name)}</div>
+                <div class="batch-line-sub">${esc(line.category)}${line.price>0?` • ${fmtRp(line.price)}/satuan`:''}</div>
+              </div>
+              <div class="batch-line-right">
+                <div class="badge-in">+${line.qty} ${esc(line.unit)}</div>
+                ${line.price>0?`<div class="batch-line-sub">${fmtRp(line.qty*line.price)}</div>`:''}
+              </div>
+            </div>`).join('')}</div>
+          ${tx.note?`<div class="hist-note">📝 ${esc(tx.note)}</div>`:''}
         </div>`).join('')}</div>`}
     </div></div>
   </div>`;
-};
-
-const onItemSelect = () => {
-  const v = document.getElementById('f_itemId').value;
-  document.getElementById('newItemBox').style.display = v==='__new__'?'block':'none';
-};
-const onSupSelect = () => {
-  const v = document.getElementById('f_supId').value;
-  document.getElementById('newSupBox').style.display = v==='__new__'?'block':'none';
 };
 
 const submitIn = () => {
-  const itemId  = document.getElementById('f_itemId').value;
-  const isEx    = itemId !== '' && itemId !== '__new__';
-  const res     = isEx ? items.find(i=>i.id===Number(itemId)) : null;
-  const newName = (document.getElementById('f_newName')||{value:''}).value.trim();
-  const name    = isEx ? res.name     : newName;
-  const category= isEx ? res.category : ((document.getElementById('f_cat')||{value:''}).value);
-  const unit    = isEx ? res.unit     : ((document.getElementById('f_unit')||{value:''}).value);
-  const supId   = document.getElementById('f_supId').value;
-  const supplier= supId==='__new__' ? (document.getElementById('f_newSup')||{value:''}).value.trim() : supId;
-  const qty     = Number(document.getElementById('f_qty').value);
-  const priceRaw= document.getElementById('f_price').value.trim();
-  const price   = priceRaw==='' ? null : Number(priceRaw);
-  const date    = document.getElementById('f_date').value;
-  const note    = document.getElementById('f_note').value;
-
-  if (!itemId)                      return toast('Pilih atau tambah barang!','err');
-  if (itemId==='__new__' && !name)  return toast('Nama barang wajib diisi!','err');
-  if (itemId==='__new__' && (!category || !unit)) return toast('Kategori dan satuan barang baru wajib dipilih!','err');
-  if (!qty || qty<=0)               return toast('Jumlah harus lebih dari 0!','err');
-  if (price!==null && price<0)      return toast('Harga tidak boleh negatif!','err');
-  if (supId==='__new__' && !supplier) return toast('Nama supplier wajib diisi!','err');
-
-  if (isEx) {
-    const finalPrice = price===null ? (res.price||0) : price;
-    inRec.unshift({id:Date.now(), itemId:res.id, name, category, qty, unit, price:finalPrice, supplier, date, note});
-    items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock+qty,price:finalPrice}:i);
-  } else {
-    const ex = items.find(i=>i.name.toLowerCase()===name.toLowerCase());
-    if (ex) {
-      const finalPrice = price===null ? (ex.price||0) : price;
-      inRec.unshift({id:Date.now(), itemId:ex.id, name:ex.name, category:ex.category, qty, unit:ex.unit, price:finalPrice, supplier, date, note});
-      items = items.map(i=>i.id===ex.id?{...i,stock:i.stock+qty,price:finalPrice}:i);
+  syncDraftInFromDom();
+  const supplier = draftIn.supplierSelect==='__new__' ? draftIn.newSupplier.trim() : draftIn.supplierSelect.trim();
+  if (draftIn.supplierSelect==='__new__' && !supplier) return toast('Nama supplier wajib diisi!','err');
+  if (!draftIn.rows.length) return toast('Tambahkan minimal 1 baris barang!','err');
+  let nextItems = items.map(i => ({...i}));
+  const lines = [];
+  for (const row of draftIn.rows) {
+    const qty = toNum(row.qty, 0);
+    const price = row.price==='' ? null : Number(row.price);
+    if (!row.itemId) return toast('Semua baris wajib memilih barang!','err');
+    if (!qty || qty<=0) return toast('Jumlah di setiap baris harus lebih dari 0!','err');
+    if (price!==null && (!Number.isFinite(price) || price<0)) return toast('Harga tidak valid!','err');
+    if (row.itemId==='__new__') {
+      const name = row.newName.trim();
+      const category = row.category;
+      const unit = row.unit;
+      if (!name || !category || !unit) return toast('Barang baru wajib punya nama, kategori, dan satuan!','err');
+      let idx = nextItems.findIndex(i => i.name.toLowerCase()===name.toLowerCase() && i.category.toLowerCase()===category.toLowerCase() && i.unit.toLowerCase()===unit.toLowerCase());
+      if (idx===-1) {
+        idx = nextItems.push({id:nextId(), name, category, stock:0, unit, minStock:10, price:0}) - 1;
+      }
+      const finalPrice = price===null ? (nextItems[idx].price||0) : price;
+      nextItems[idx].stock += qty;
+      nextItems[idx].price = finalPrice;
+      lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit, price:finalPrice});
     } else {
-      const newId = Date.now()+1;
-      const finalPrice = price===null ? 0 : price;
-      inRec.unshift({id:Date.now(), itemId:newId, name, category, qty, unit, price:finalPrice, supplier, date, note});
-      items.push({id:newId, name, category, stock:qty, unit, minStock:10, price:finalPrice});
+      const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
+      if (idx===-1) return toast('Ada barang yang tidak ditemukan di sistem!','err');
+      const finalPrice = price===null ? (nextItems[idx].price||0) : price;
+      nextItems[idx].stock += qty;
+      nextItems[idx].price = finalPrice;
+      lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit, price:finalPrice});
     }
   }
-  save(); toast('Barang masuk berhasil dicatat!'); render();
+  items = nextItems;
+  inRec.unshift({id:nextId(), date:draftIn.date||today(), supplier, note:draftIn.note.trim(), lines});
+  save();
+  resetDraftIn();
+  toast(`Transaksi barang masuk tersimpan (${lines.length} produk).`);
+  render();
 };
 
 // ── BARANG KELUAR ──────────────────────────────────────────────
-const pageOut = () => `
+const pageOut = () => {
+  const recipientList = getRecipientList();
+  return `
   <div class="page-title">📤 Input Barang Keluar</div>
-  <div class="page-sub">Catat pengeluaran atau penggunaan stok</div>
+  <div class="page-sub">Catat pengeluaran stok untuk banyak produk dalam satu transaksi</div>
   <div class="two-col">
-    <div class="panel"><div class="panel-head">Form Barang Keluar</div><div class="panel-body">
-      <div class="field"><label>Pilih Barang *</label>
-        <select id="o_itemId">
-          <option value="">-- Pilih Barang --</option>
-          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
-        </select>
+    <div class="panel"><div class="panel-head">Form Barang Keluar Batch</div><div class="panel-body">
+      <div class="batch-meta">
+        <div class="field"><label>Tanggal</label><input type="date" id="o_date" value="${escAttr(draftOut.date)}"></div>
+        <div class="field"><label>Tujuan / Penerima</label>
+          <select id="o_recipientSel" onchange="outRecipientChange(this.value)">
+            <option value="" ${draftOut.recipientSelect===''?'selected':''}>-- Pilih Tujuan / Penerima --</option>
+            ${recipientList.map(r=>`<option value="${escAttr(r)}" ${draftOut.recipientSelect===r?'selected':''}>${esc(r)}</option>`).join('')}
+            <option value="__new__" ${draftOut.recipientSelect==='__new__'?'selected':''}>➕ Tambah Tujuan / Penerima Baru...</option>
+          </select>
+        </div>
       </div>
-      <div class="row2">
-        <div class="field"><label>Jumlah *</label><input type="number" min="1" id="o_qty" placeholder="0"></div>
-        <div class="field"><label>Tanggal</label><input type="date" id="o_date" value="${today()}"></div>
+      ${draftOut.recipientSelect==='__new__'?`<div class="field"><label>Nama Tujuan / Penerima Baru *</label><input id="o_newRecipient" value="${escAttr(draftOut.newRecipient)}" placeholder="contoh: Produksi, Gudang Cabang, Budi"></div>`:''}
+      <div class="field"><label>Keterangan Transaksi</label><textarea id="o_note" rows="3">${esc(draftOut.note)}</textarea></div>
+      <div class="line-builder" id="out_rows">
+        ${draftOut.rows.map((row, idx)=>`
+          <div class="line-row" data-row-id="${row.rowId}">
+            <div class="line-row-head">
+              <div class="line-row-title">Barang ${idx+1}</div>
+              <button class="line-remove" onclick="removeOutRow(${row.rowId})" ${draftOut.rows.length===1?'disabled':''}>Hapus Baris</button>
+            </div>
+            <div class="line-grid-2">
+              <div class="field"><label>Pilih Barang *</label>
+                <select data-field="itemId">
+                  <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                </select>
+              </div>
+              <div class="field"><label>Jumlah *</label><input type="number" min="1" data-field="qty" value="${escAttr(row.qty)}" placeholder="0"></div>
+            </div>
+          </div>`).join('')}
       </div>
-      <div class="field"><label>Tujuan / Penerima</label><input id="o_recipient" placeholder="nama penerima / departemen"></div>
-      <div class="field"><label>Keterangan</label><textarea id="o_note" rows="3"></textarea></div>
-      <button class="btn-warn" onclick="submitOut()">+ Simpan Barang Keluar</button>
+      <button class="line-add" onclick="addOutRow()">+ Tambah Baris Barang</button>
+      <button class="btn-warn" onclick="submitOut()">+ Simpan Transaksi Barang Keluar</button>
     </div></div>
-    <div class="panel"><div class="panel-head">Riwayat Barang Keluar (${outRec.length})</div><div class="panel-body">
+    <div class="panel"><div class="panel-head">Riwayat Barang Keluar (${outRec.length} transaksi)</div><div class="panel-body">
       ${outRec.length===0?'<div class="empty">Belum ada data barang keluar.</div>':
-      `<div class="hist-scroll">${outRec.map(r=>`
+      `<div class="hist-scroll">${outRec.map(tx=>`
         <div class="hist-card hist-out">
-          <div class="hist-head"><span class="hist-name">${esc(r.name)}</span><span class="badge-out">-${r.qty} ${esc(r.unit)}</span></div>
+          <div class="hist-head"><span class="hist-name">Transaksi Keluar #${tx.id}</span><span class="badge-out">${tx.lines.length} produk</span></div>
           <div class="hist-meta">
-            <span>📁 ${esc(r.category)}</span>
-            ${r.recipient?`<span>👤 ${esc(r.recipient)}</span>`:''}
-            <span>📅 ${fmt(r.date)}</span>
+            ${tx.recipient?`<span>👤 ${esc(tx.recipient)}</span>`:''}
+            <span>📅 ${fmt(tx.date)}</span>
           </div>
-          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+          <div class="batch-lines">${tx.lines.map(line=>`
+            <div class="batch-line" style="border-color:#fed7aa">
+              <div class="batch-line-left">
+                <div class="batch-line-name">${esc(line.name)}</div>
+                <div class="batch-line-sub">${esc(line.category)}</div>
+              </div>
+              <div class="batch-line-right"><div class="badge-out">-${line.qty} ${esc(line.unit)}</div></div>
+            </div>`).join('')}</div>
+          ${tx.note?`<div class="hist-note">📝 ${esc(tx.note)}</div>`:''}
         </div>`).join('')}</div>`}
     </div></div>
   </div>`;
+};
 
 const submitOut = () => {
-  const itemId    = document.getElementById('o_itemId').value;
-  const qty       = Number(document.getElementById('o_qty').value);
-  const date      = document.getElementById('o_date').value;
-  const recipient = document.getElementById('o_recipient').value;
-  const note      = document.getElementById('o_note').value;
-  if (!itemId || !qty || qty<=0) return toast('Lengkapi data!','err');
-  const item = items.find(i=>i.id===Number(itemId));
-  if (!item) return toast('Barang tidak ditemukan!','err');
-  if (qty>item.stock) return toast(`Stok tidak cukup! Tersedia: ${item.stock} ${item.unit}`,'err');
-  outRec.unshift({id:Date.now(), itemId:item.id, name:item.name, category:item.category, qty, unit:item.unit, recipient, date, note});
-  items = items.map(i=>i.id===Number(itemId)?{...i,stock:i.stock-qty}:i);
-  save(); toast('Barang keluar berhasil dicatat!'); render();
+  syncDraftOutFromDom();
+  const recipient = draftOut.recipientSelect==='__new__' ? draftOut.newRecipient.trim() : draftOut.recipientSelect.trim();
+  if (draftOut.recipientSelect==='__new__' && !recipient) return toast('Nama tujuan / penerima wajib diisi!','err');
+  if (!draftOut.rows.length) return toast('Tambahkan minimal 1 baris barang!','err');
+  let nextItems = items.map(i => ({...i}));
+  const lines = [];
+  for (const row of draftOut.rows) {
+    const qty = toNum(row.qty, 0);
+    if (!row.itemId) return toast('Semua baris wajib memilih barang!','err');
+    if (!qty || qty<=0) return toast('Jumlah di setiap baris harus lebih dari 0!','err');
+    const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
+    if (idx===-1) return toast('Ada barang yang tidak ditemukan di sistem!','err');
+    if (qty>nextItems[idx].stock) return toast(`Stok ${nextItems[idx].name} tidak cukup! Tersedia: ${nextItems[idx].stock} ${nextItems[idx].unit}`,'err');
+    nextItems[idx].stock -= qty;
+    lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit});
+  }
+  items = nextItems;
+  if (recipient && !recipients.map(r=>r.toLowerCase()).includes(recipient.toLowerCase())) recipients.push(recipient);
+  outRec.unshift({id:nextId(), date:draftOut.date||today(), recipient, note:draftOut.note.trim(), lines});
+  recipients = uniqText(recipients);
+  save();
+  resetDraftOut();
+  toast(`Transaksi barang keluar tersimpan (${lines.length} produk).`);
+  render();
 };
 
 // ── STOK OPNAME ────────────────────────────────────────────────
 const pageOpname = () => {
-  const mismatchCount = opRec.filter(r=>r.diff!==0).length;
-  const plusAdj = opRec.filter(r=>r.diff>0).reduce((s,r)=>s+r.diff,0);
-  const minusAdj = opRec.filter(r=>r.diff<0).reduce((s,r)=>s+Math.abs(r.diff),0);
+  const opLines = getOpLines();
+  const mismatchCount = opLines.filter(r=>r.diff!==0).length;
+  const totalAdj = opLines.reduce((s,r)=>s+r.diff,0);
   return `
   <div class="page-title">🧮 Input & Report Stok Opname</div>
-  <div class="page-sub">Cocokkan stok sistem dengan stok fisik lalu simpan hasil penyesuaian</div>
+  <div class="page-sub">Catat hasil hitung fisik banyak produk dalam satu sesi opname</div>
   <div class="three-col">
     ${[
-      {l:'Total Opname',v:opRec.length,sub:`Selisih ditemukan: ${mismatchCount}`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
-      {l:'Penyesuaian Naik',v:`+${plusAdj}`,sub:'Unit yang menambah stok sistem',g:'linear-gradient(135deg,#22c55e,#16a34a)'},
-      {l:'Penyesuaian Turun',v:`-${minusAdj}`,sub:'Unit yang mengurangi stok sistem',g:'linear-gradient(135deg,#f97316,#ef4444)'},
+      {l:'Total Sesi Opname',v:opRec.length,sub:`Item dicek: ${opLines.length}`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
+      {l:'Ada Selisih',v:mismatchCount,sub:'Jumlah item dengan hasil fisik berbeda',g:'linear-gradient(135deg,#f59e0b,#ef4444)'},
+      {l:'Net Penyesuaian',v:fmtDiff(totalAdj),sub:'Akumulasi selisih seluruh opname',g:'linear-gradient(135deg,#22c55e,#16a34a)'},
     ].map(c=>`<div class="sum-card" style="background:${c.g}">
       <div class="s-lbl">${c.l}</div><div class="s-val">${c.v}</div><div class="s-sub">${c.sub}</div>
     </div>`).join('')}
   </div>
   <div class="two-col">
-    <div class="panel"><div class="panel-head">Form Stok Opname</div><div class="panel-body">
-      <div class="field"><label>Pilih Barang *</label>
-        <select id="op_itemId" onchange="updateOpnamePreview()">
-          <option value="">-- Pilih Barang --</option>
-          ${items.map(i=>`<option value="${i.id}">${esc(i.name)} (Stok sistem: ${i.stock} ${esc(i.unit)})</option>`).join('')}
-        </select>
+    <div class="panel"><div class="panel-head">Form Stok Opname Batch</div><div class="panel-body">
+      <div class="batch-meta">
+        <div class="field"><label>Tanggal</label><input type="date" id="op_date" value="${escAttr(draftOp.date)}"></div>
+        <div class="field"><label>Alasan / Keterangan Opname *</label><input id="op_reason" value="${escAttr(draftOp.reason)}" placeholder="contoh: opname bulanan gudang utama"></div>
       </div>
-      <div id="op_preview" class="warn-box" style="display:none"></div>
-      <div class="row2">
-        <div class="field"><label>Stok Fisik *</label><input type="number" min="0" id="op_actual" placeholder="hasil hitung fisik" oninput="updateOpnamePreview()"></div>
-        <div class="field"><label>Tanggal</label><input type="date" id="op_date" value="${today()}"></div>
+      <div class="field"><label>Catatan Tambahan</label><textarea id="op_note" rows="3">${esc(draftOp.note)}</textarea></div>
+      <div class="warn-box">
+        <div class="warn-title">Catatan Opname</div>
+        <div style="font-size:12px;color:#713f12;line-height:1.6">Setiap baris akan mencatat stok sistem, stok fisik, dan selisih. Item yang tidak diinput tidak akan diubah.</div>
       </div>
-      <div class="field"><label>Alasan / Keterangan Opname *</label><input id="op_reason" placeholder="contoh: stok opname bulanan, koreksi selisih gudang"></div>
-      <div class="field"><label>Catatan Tambahan</label><textarea id="op_note" rows="3"></textarea></div>
-      <button class="btn-primary" onclick="submitOpname()">+ Simpan Hasil Opname</button>
+      <div class="line-builder" id="op_rows">
+        ${draftOp.rows.map((row, idx)=>`
+          <div class="line-row" data-row-id="${row.rowId}">
+            <div class="line-row-head">
+              <div class="line-row-title">Item Opname ${idx+1}</div>
+              <button class="line-remove" onclick="removeOpRow(${row.rowId})" ${draftOp.rows.length===1?'disabled':''}>Hapus Baris</button>
+            </div>
+            <div class="line-grid-2">
+              <div class="field"><label>Pilih Barang *</label>
+                <select data-field="itemId">
+                  <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Sistem: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                </select>
+              </div>
+              <div class="field"><label>Stok Fisik *</label><input type="number" min="0" data-field="actualStock" value="${escAttr(row.actualStock)}" placeholder="hasil hitung fisik"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button class="line-add" onclick="addOpRow()">+ Tambah Baris Opname</button>
+      <button class="btn-primary" onclick="submitOpname()">+ Simpan Sesi Stok Opname</button>
     </div></div>
-    <div class="panel"><div class="panel-head">Riwayat Opname (${opRec.length})</div><div class="panel-body">
+    <div class="panel"><div class="panel-head">Riwayat Stok Opname (${opRec.length} sesi)</div><div class="panel-body">
       ${opRec.length===0?'<div class="empty">Belum ada data stok opname.</div>':
-      `<div class="hist-scroll">${opRec.map(r=>`
+      `<div class="hist-scroll">${opRec.map(tx=>`
         <div class="hist-card hist-opname">
-          <div class="hist-head"><span class="hist-name">${esc(r.itemName)}</span><span class="badge-opname">${fmtDiff(r.diff)} ${esc(r.unit)}</span></div>
+          <div class="hist-head"><span class="hist-name">Sesi Opname #${tx.id}</span><span class="badge-opname">${tx.lines.length} item</span></div>
           <div class="hist-meta">
-            <span>📁 ${esc(r.category)}</span>
-            <span>📅 ${fmt(r.date)}</span>
-            <span>🖥️ Sistem: ${r.systemStock} ${esc(r.unit)}</span>
-            <span>📦 Fisik: ${r.actualStock} ${esc(r.unit)}</span>
+            <span>📅 ${fmt(tx.date)}</span>
+            <span>📋 ${esc(tx.reason)}</span>
           </div>
-          <div style="font-size:12px;font-weight:700;margin-top:6px" class="${diffClass(r.diff)}">Selisih opname: ${fmtDiff(r.diff)} ${esc(r.unit)}</div>
-          <div style="font-size:12px;color:#1e40af;font-weight:600;margin-top:6px">📋 Alasan: ${esc(r.reason)}</div>
-          ${r.note?`<div class="hist-note">📝 ${esc(r.note)}</div>`:''}
+          <div class="batch-lines">${tx.lines.map(line=>`
+            <div class="batch-line">
+              <div class="batch-line-left">
+                <div class="batch-line-name">${esc(line.itemName)}</div>
+                <div class="batch-line-sub">${esc(line.category)} • Sistem ${line.systemStock} ${esc(line.unit)} • Fisik ${line.actualStock} ${esc(line.unit)}</div>
+              </div>
+              <div class="batch-line-right"><div class="badge-opname ${diffClass(line.diff)}">${fmtDiff(line.diff)} ${esc(line.unit)}</div></div>
+            </div>`).join('')}</div>
+          ${tx.note?`<div class="hist-note">📝 ${esc(tx.note)}</div>`:''}
         </div>`).join('')}</div>`}
     </div></div>
   </div>`;
 };
 
-const updateOpnamePreview = () => {
-  const wrap = document.getElementById('op_preview');
-  if (!wrap) return;
-  const itemId = document.getElementById('op_itemId').value;
-  const actualRaw = document.getElementById('op_actual').value.trim();
-  if (!itemId) {
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-  const item = items.find(i=>i.id===Number(itemId));
-  if (!item) return;
-  const actual = actualRaw==='' ? null : Number(actualRaw);
-  const diff = actual===null || Number.isNaN(actual) ? null : actual - item.stock;
-  wrap.style.display = 'block';
-  wrap.innerHTML = `
-    <div class="warn-title">📌 Preview Penyesuaian</div>
-    <div style="font-size:13px;color:#334155;line-height:1.6">
-      <div><strong>${esc(item.name)}</strong> saat ini tercatat <strong>${item.stock} ${esc(item.unit)}</strong>.</div>
-      <div>${diff===null?'Masukkan stok fisik untuk melihat selisih opname.':`Jika disimpan, stok akan disesuaikan menjadi <strong>${actual} ${esc(item.unit)}</strong> dengan selisih <strong class="${diffClass(diff)}">${fmtDiff(diff)} ${esc(item.unit)}</strong>.`}</div>
-    </div>`;
-};
-
 const submitOpname = () => {
-  const itemId = document.getElementById('op_itemId').value;
-  const actualRaw = document.getElementById('op_actual').value.trim();
-  const actualStock = Number(actualRaw);
-  const date = document.getElementById('op_date').value;
-  const reason = document.getElementById('op_reason').value.trim();
-  const note = document.getElementById('op_note').value.trim();
-  if (!itemId) return toast('Pilih barang untuk stok opname!','err');
-  if (actualRaw==='' || Number.isNaN(actualStock) || actualStock<0) return toast('Stok fisik harus 0 atau lebih!','err');
-  if (!reason) return toast('Alasan opname wajib diisi!','err');
-  const item = items.find(i=>i.id===Number(itemId));
-  if (!item) return toast('Barang tidak ditemukan!','err');
-  const diff = actualStock - item.stock;
-  const record = {
-    id: Date.now(),
-    itemId: item.id,
-    itemName: item.name,
-    category: item.category,
-    unit: item.unit,
-    date,
-    systemStock: item.stock,
-    actualStock,
-    diff,
-    reason,
-    note
-  };
-  opRec.unshift(record);
-  actLog.unshift({
-    id: Date.now()+1,
+  syncDraftOpFromDom();
+  if (!draftOp.reason.trim()) return toast('Alasan opname wajib diisi!','err');
+  if (!draftOp.rows.length) return toast('Tambahkan minimal 1 item opname!','err');
+  const seen = new Set();
+  let nextItems = items.map(i => ({...i}));
+  const lines = [];
+  for (const row of draftOp.rows) {
+    const actualStock = Number(row.actualStock);
+    if (!row.itemId) return toast('Semua baris opname wajib memilih barang!','err');
+    if (seen.has(String(row.itemId))) return toast('Satu barang tidak boleh diinput dua kali dalam sesi opname!','err');
+    seen.add(String(row.itemId));
+    if (!Number.isFinite(actualStock) || actualStock<0) return toast('Stok fisik harus 0 atau lebih!','err');
+    const current = items.find(i => i.id===Number(row.itemId));
+    const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
+    if (!current || idx===-1) return toast('Ada barang opname yang tidak ditemukan!','err');
+    const diff = actualStock - current.stock;
+    nextItems[idx].stock = actualStock;
+    lines.push({
+      itemId: current.id,
+      itemName: current.name,
+      category: current.category,
+      unit: current.unit,
+      systemStock: current.stock,
+      actualStock,
+      diff
+    });
+  }
+  items = nextItems;
+  opRec.unshift({id:nextId(), date:draftOp.date||today(), reason:draftOp.reason.trim(), note:draftOp.note.trim(), lines});
+  lines.forEach(line => actLog.unshift({
+    id: nextId(),
     ts: new Date().toISOString(),
     type: 'opname',
-    itemName: item.name,
-    systemStock: item.stock,
-    actualStock,
-    diff,
-    unit: item.unit,
-    reason,
-    note
-  });
-  items = items.map(i=>i.id===item.id?{...i,stock:actualStock}:i);
+    itemName: line.itemName,
+    systemStock: line.systemStock,
+    actualStock: line.actualStock,
+    diff: line.diff,
+    unit: line.unit,
+    reason: draftOp.reason.trim(),
+    note: draftOp.note.trim()
+  }));
   save();
-  toast(diff===0 ? 'Opname tercatat tanpa selisih stok.' : 'Stok opname berhasil disimpan dan stok diperbarui!');
+  resetDraftOp();
+  toast(`Sesi stok opname tersimpan (${lines.length} item).`);
   render();
 };
 
 // ── RINGKASAN ──────────────────────────────────────────────────
 const pageSummary = () => {
-  const totalIn  = inRec.reduce((s,r)=>s+r.qty,0);
-  const totalOut = outRec.reduce((s,r)=>s+r.qty,0);
-  const totalAdj = opRec.reduce((s,r)=>s+r.diff,0);
+  const inLines = getInLines();
+  const outLines = getOutLines();
+  const opLines = getOpLines();
+  const totalIn  = inLines.reduce((s,r)=>s+r.qty,0);
+  const totalOut = outLines.reduce((s,r)=>s+r.qty,0);
+  const totalAdj = opLines.reduce((s,r)=>s+r.diff,0);
   const fItems   = items.filter(i=>fuzzy(i.name,searchSummary)||fuzzy(i.category,searchSummary));
   const fTx      = [
-    ...inRec.map(r=>({...r,type:'in'})),
-    ...outRec.map(r=>({...r,type:'out'})),
-    ...opRec.map(r=>({...r,name:r.itemName,qty:Math.abs(r.diff),type:'opname'}))
+    ...inLines.map(r=>({...r,type:'in'})),
+    ...outLines.map(r=>({...r,type:'out'})),
+    ...opLines.map(r=>({...r,name:r.itemName,type:'opname'}))
   ]
-    .sort((a,b)=>b.id-a.id)
+    .sort((a,b)=>b.batchId-a.batchId)
     .filter(r=>fuzzy(r.name,searchSummary)||fuzzy(r.category,searchSummary)||fuzzy(r.supplier||'',searchSummary)||fuzzy(r.recipient||'',searchSummary)||fuzzy(r.reason||'',searchSummary));
   return `
   <div class="page-title">📋 Ringkasan & Laporan</div>
-  <div class="page-sub">Rekap keseluruhan transaksi stok</div>
+  <div class="page-sub">Rekap per batch transaksi dan detail item stok</div>
   <div class="stat-grid" style="margin-bottom:28px">
     ${[
-      {l:'Total Transaksi', v:inRec.length+outRec.length+opRec.length, sub:`Masuk: ${inRec.length} | Keluar: ${outRec.length} | Opname: ${opRec.length}`, g:'linear-gradient(135deg,#6366f1,#8b5cf6)'},
-      {l:'Total Unit Masuk', v:totalIn,  sub:`dari ${inRec.length} transaksi`,  g:'linear-gradient(135deg,#0ea5e9,#22c55e)'},
-      {l:'Total Unit Keluar',v:totalOut, sub:`dari ${outRec.length} transaksi`, g:'linear-gradient(135deg,#f59e0b,#ef4444)'},
-      {l:'Net Opname',v:fmtDiff(totalAdj),sub:`selisih total dari ${opRec.length} opname`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
+      {l:'Total Batch', v:inRec.length+outRec.length+opRec.length, sub:`Masuk ${inRec.length} | Keluar ${outRec.length} | Opname ${opRec.length}`, g:'linear-gradient(135deg,#6366f1,#8b5cf6)'},
+      {l:'Total Unit Masuk', v:totalIn,  sub:`dari ${inLines.length} baris produk`,  g:'linear-gradient(135deg,#0ea5e9,#22c55e)'},
+      {l:'Total Unit Keluar',v:totalOut, sub:`dari ${outLines.length} baris produk`, g:'linear-gradient(135deg,#f59e0b,#ef4444)'},
+      {l:'Net Opname',v:fmtDiff(totalAdj),sub:`dari ${opLines.length} baris opname`,g:'linear-gradient(135deg,#0ea5e9,#2563eb)'},
     ].map(c=>`<div class="sum-card" style="background:${c.g}">
       <div class="s-lbl">${c.l}</div><div class="s-val">${c.v}</div><div class="s-sub">${c.sub}</div>
     </div>`).join('')}
@@ -667,8 +976,8 @@ const pageSummary = () => {
     <table>
       <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Total Masuk</th><th>Total Keluar</th><th>Stok Saat Ini</th><th>Status</th></tr></thead>
       <tbody>${fItems.map(it=>{
-        const tIn=inRec.filter(r=>r.itemId===it.id||r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
-        const tOut=outRec.filter(r=>r.itemId===it.id||r.name.toLowerCase()===it.name.toLowerCase()).reduce((s,r)=>s+r.qty,0);
+        const tIn=inLines.filter(r=>r.itemId===it.id).reduce((s,r)=>s+r.qty,0);
+        const tOut=outLines.filter(r=>r.itemId===it.id).reduce((s,r)=>s+r.qty,0);
         const isLow=it.stock<=it.minStock;
         return`<tr>
           <td><strong>${hl(it.name,searchSummary)}</strong></td>
@@ -681,7 +990,7 @@ const pageSummary = () => {
     </table>`}
   </div>
   <div class="panel">
-    <div class="panel-head">📜 Semua Riwayat Transaksi ${searchSummary?`<span style="font-size:12px;color:#6366f1;font-weight:600">${fTx.length} hasil</span>`:''}
+    <div class="panel-head">📜 Semua Detail Transaksi ${searchSummary?`<span style="font-size:12px;color:#6366f1;font-weight:600">${fTx.length} hasil</span>`:''}
     </div>
     <div class="panel-body">
     ${fTx.length===0?`<div class="empty">${searchSummary?`Tidak ada transaksi cocok "${esc(searchSummary)}"`:'Belum ada transaksi.'}</div>`:
@@ -759,13 +1068,14 @@ const pageManage = () => {
 // ── PENGATURAN ─────────────────────────────────────────────────
 const pageSettings = () => `
   <div class="page-title">🛠️ Pengaturan</div>
-  <div class="page-sub">Kelola master data kategori dan satuan sesuai kebutuhan bisnis kamu</div>
+  <div class="page-sub">Kelola master data kategori, satuan, dan tujuan / penerima sesuai kebutuhan bisnis kamu</div>
   <div class="panel" style="margin-bottom:16px"><div class="panel-body" style="padding:12px 18px;background:#fefce8;border-radius:14px;color:#854d0e;font-size:13px">
-    ⚠️ <strong>Catatan:</strong> Kategori atau satuan yang sedang digunakan oleh barang aktif tidak bisa dihapus.
+    ⚠️ <strong>Catatan:</strong> Master data yang sedang dipakai di transaksi aktif tidak bisa dihapus.
   </div></div>
-  <div class="two-col">
+  <div class="three-col">
     ${masterList('Kategori Barang','📁',cats,'cat','Spare Part, Bahan Baku...')}
     ${masterList('Satuan Barang','📏',units,'unit','unit, kg, pcs, karton...')}
+    ${masterList('Tujuan / Penerima','👤',getRecipientList(),'recipient','Produksi, Gudang Cabang, Budi...')}
   </div>`;
 
 const masterList = (title, icon, arr, type, ph) => `
@@ -784,23 +1094,29 @@ const addMaster = type => {
   if (type==='cat') {
     if (cats.map(c=>c.toLowerCase()).includes(v.toLowerCase())) return toast('Kategori sudah ada!','warn');
     cats.push(v); toast(`Kategori "${v}" ditambahkan!`);
-  } else {
+  } else if (type==='unit') {
     if (units.map(u=>u.toLowerCase()).includes(v.toLowerCase())) return toast('Satuan sudah ada!','warn');
     units.push(v); toast(`Satuan "${v}" ditambahkan!`);
+  } else {
+    if (getRecipientList().map(r=>r.toLowerCase()).includes(v.toLowerCase())) return toast('Tujuan / penerima sudah ada!','warn');
+    recipients.push(v); recipients = uniqText(recipients); toast(`Tujuan / penerima "${v}" ditambahkan!`);
   }
   save(); render();
 };
 
 const delMasterAt = (type, idx) => {
-  const arr = type==='cat' ? cats : units;
+  const arr = type==='cat' ? cats : type==='unit' ? units : getRecipientList();
   const v = arr[idx];
   if (v===undefined) return;
   if (type==='cat') {
     if (items.some(i=>i.category===v)) return toast(`Kategori "${v}" masih digunakan!`,'err');
     cats = cats.filter(c=>c!==v); toast(`Kategori "${v}" dihapus.`);
-  } else {
+  } else if (type==='unit') {
     if (items.some(i=>i.unit===v)) return toast(`Satuan "${v}" masih digunakan!`,'err');
     units = units.filter(u=>u!==v); toast(`Satuan "${v}" dihapus.`);
+  } else {
+    if (outRec.some(tx=>tx.recipient===v)) return toast(`Tujuan / penerima "${v}" masih dipakai di transaksi!`,'err');
+    recipients = recipients.filter(r=>r!==v); toast(`Tujuan / penerima "${v}" dihapus.`);
   }
   save(); render();
 };
@@ -875,7 +1191,7 @@ const confirmDel = () => {
 
 // ── Export / Import ────────────────────────────────────────────
 const exportData = () => {
-  const data = {items,inRec,outRec,opRec,actLog,cats,units,exportedAt:new Date().toISOString()};
+  const data = {items,inRec,outRec,opRec,actLog,cats,units,recipients,exportedAt:new Date().toISOString()};
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
   a.download = `stockpro_backup_${today()}.json`;
@@ -895,6 +1211,11 @@ const importData = e => {
       if(Array.isArray(d.actLog)) actLog = d.actLog;
       if(Array.isArray(d.cats))   cats   = d.cats;
       if(Array.isArray(d.units))  units  = d.units;
+      if(Array.isArray(d.recipients)) recipients = d.recipients;
+      normalizeState();
+      resetDraftIn();
+      resetDraftOut();
+      resetDraftOp();
       save(); toast('Data berhasil diimport!'); render();
     } catch { toast('File tidak valid!','err'); }
   };
