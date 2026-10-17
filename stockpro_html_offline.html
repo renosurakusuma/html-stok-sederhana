@@ -966,7 +966,7 @@ const pageSummary = () => {
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input value="${escAttr(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima, alasan opname...">
+    <input id="summarySearch" value="${escAttr(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima, alasan opname...">
     ${searchSummary?`<button class="search-clear" onclick="searchSummary='';render()">✕</button>`:''}
   </div>
   <div class="panel">
@@ -1022,7 +1022,7 @@ const pageManage = () => {
   <div class="page-sub">Edit atau hapus data barang. Setiap perubahan dicatat di audit trail.</div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input value="${escAttr(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
+    <input id="manageSearch" value="${escAttr(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
     ${searchManage?`<button class="search-clear" onclick="searchManage='';render()">✕</button>`:''}
   </div>
   <div class="panel">
@@ -1225,8 +1225,23 @@ const importData = e => {
 
 // ── Live search (tanpa full re-render) ────────────────────────
 const renderMain = () => {
+  const active = document.activeElement;
+  const preserveFocus = active && active.closest('#main') ? {
+    id: active.id,
+    selectionStart: typeof active.selectionStart==='number' ? active.selectionStart : null,
+    selectionEnd: typeof active.selectionEnd==='number' ? active.selectionEnd : null
+  } : null;
   const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, manage:pageManage, settings:pageSettings };
   document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
+  if (preserveFocus && preserveFocus.id) {
+    const next = document.getElementById(preserveFocus.id);
+    if (next) {
+      next.focus();
+      if (preserveFocus.selectionStart!==null && typeof next.setSelectionRange==='function') {
+        next.setSelectionRange(preserveFocus.selectionStart, preserveFocus.selectionEnd ?? preserveFocus.selectionStart);
+      }
+    }
+  }
 };
 
 // ── Init ───────────────────────────────────────────────────────
