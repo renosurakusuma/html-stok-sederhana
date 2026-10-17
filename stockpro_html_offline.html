@@ -187,8 +187,9 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
     </div>
     <nav id="nav"></nav>
     <div class="sidebar-footer">
-      <button onclick="exportData()">⬇️ Export Backup</button>
-      <label>⬆️ Import Backup<input type="file" accept=".json" onchange="importData(event)" style="display:none"></label>
+      <button onclick="exportData('csv')">⬇️ Export CSV</button>
+      <label>⬆️ Import CSV / JSON<input type="file" accept=".csv,.json" onchange="importData(event)" style="display:none"></label>
+      <button onclick="exportData('json')">🗂️ Export JSON</button>
       <div class="date" id="dateLabel"></div>
     </div>
   </aside>
@@ -306,6 +307,184 @@ const hl = (text, query) => {
   const used=new Set(); let pi=0;
   for (let i=0;i<s.length&&pi<p.length;i++) if(s[i]===p[pi]){used.add(i);pi++;}
   return [...text].map((ch,i) => used.has(i)?`<mark>${esc(ch)}</mark>`:esc(ch)).join('');
+};
+
+const CSV_HEADERS = [
+  'record_type','audit_type','key','value','id','batch_id','line_index','date','ts',
+  'item_id','name','category','qty','unit','price','supplier','recipient','reason','note',
+  'stock','min_stock','system_stock','actual_stock','diff','changes_json'
+];
+
+const csvCell = v => {
+  const s = String(v ?? '');
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+};
+
+const buildCsv = rows => [
+  CSV_HEADERS.map(csvCell).join(','),
+  ...rows.map(row => CSV_HEADERS.map(h => csvCell(row[h] ?? '')).join(','))
+].join('\r\n');
+
+const parseCsv = text => {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let i = 0;
+  let inQuotes = false;
+  while (i < text.length) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i+1] === '"') { cell += '"'; i += 2; continue; }
+        inQuotes = false;
+      } else cell += ch;
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      row.push(cell); cell = '';
+    } else if (ch === '\n') {
+      row.push(cell); rows.push(row); row = []; cell = '';
+    } else if (ch !== '\r') {
+      cell += ch;
+    }
+    i++;
+  }
+  if (cell.length || row.length) { row.push(cell); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows.shift().map(h => h.trim());
+  return rows
+    .filter(cols => cols.some(col => String(col).trim() !== ''))
+    .map(cols => Object.fromEntries(headers.map((h, idx) => [h, cols[idx] ?? ''])));
+};
+
+const downloadFile = (content, type, filename) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type}));
+  a.download = filename;
+  a.click();
+};
+
+const buildCsvRows = () => {
+  const rows = [{record_type:'meta', key:'exported_at', value:new Date().toISOString()}];
+  items.forEach(it => rows.push({
+    record_type:'item', id:it.id, name:it.name, category:it.category, stock:it.stock, unit:it.unit, min_stock:it.minStock, price:it.price
+  }));
+  cats.forEach(v => rows.push({record_type:'master', key:'cat', value:v}));
+  units.forEach(v => rows.push({record_type:'master', key:'unit', value:v}));
+  getRecipientList().forEach(v => rows.push({record_type:'master', key:'recipient', value:v}));
+  inRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
+    record_type:'in_line', batch_id:tx.id, line_index:idx, date:tx.date, supplier:tx.supplier||'', note:tx.note||'',
+    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit, price:line.price
+  })));
+  outRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
+    record_type:'out_line', batch_id:tx.id, line_index:idx, date:tx.date, recipient:tx.recipient||'', note:tx.note||'',
+    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit
+  })));
+  opRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
+    record_type:'op_line', batch_id:tx.id, line_index:idx, date:tx.date, reason:tx.reason||'', note:tx.note||'',
+    item_id:line.itemId, name:line.itemName, category:line.category, unit:line.unit,
+    system_stock:line.systemStock, actual_stock:line.actualStock, diff:line.diff
+  })));
+  actLog.forEach(a => rows.push({
+    record_type:'audit', audit_type:a.type, id:a.id, ts:a.ts, name:a.itemName, unit:a.unit||'', reason:a.reason||'', note:a.note||'',
+    stock:a.stockAtDelete ?? '', system_stock:a.systemStock ?? '', actual_stock:a.actualStock ?? '', diff:a.diff ?? '',
+    changes_json: JSON.stringify(a.changes||[])
+  }));
+  return rows;
+};
+
+const parseCsvData = rows => {
+  const nextState = { items:[], inRec:[], outRec:[], opRec:[], actLog:[], cats:[], units:[], recipients:[] };
+  const inMap = new Map(), outMap = new Map(), opMap = new Map();
+  rows.forEach(row => {
+    const type = String(row.record_type||'').trim();
+    if (type==='item') {
+      nextState.items.push({
+        id: toNum(row.id, nextId()),
+        name: row.name,
+        category: row.category,
+        stock: toNum(row.stock, 0),
+        unit: row.unit,
+        minStock: toNum(row.min_stock, 0),
+        price: toNum(row.price, 0)
+      });
+    } else if (type==='master') {
+      if (row.key==='cat') nextState.cats.push(row.value);
+      if (row.key==='unit') nextState.units.push(row.value);
+      if (row.key==='recipient') nextState.recipients.push(row.value);
+    } else if (type==='in_line') {
+      const id = toNum(row.batch_id, nextId());
+      if (!inMap.has(id)) inMap.set(id, { id, date: row.date || today(), supplier: row.supplier || '', note: row.note || '', lines: [] });
+      inMap.get(id).lines.push({
+        itemId: row.item_id==='' ? null : toNum(row.item_id, null),
+        name: row.name,
+        category: row.category,
+        qty: toNum(row.qty, 0),
+        unit: row.unit,
+        price: toNum(row.price, 0)
+      });
+    } else if (type==='out_line') {
+      const id = toNum(row.batch_id, nextId());
+      if (!outMap.has(id)) outMap.set(id, { id, date: row.date || today(), recipient: row.recipient || '', note: row.note || '', lines: [] });
+      outMap.get(id).lines.push({
+        itemId: row.item_id==='' ? null : toNum(row.item_id, null),
+        name: row.name,
+        category: row.category,
+        qty: toNum(row.qty, 0),
+        unit: row.unit
+      });
+    } else if (type==='op_line') {
+      const id = toNum(row.batch_id, nextId());
+      if (!opMap.has(id)) opMap.set(id, { id, date: row.date || today(), reason: row.reason || '', note: row.note || '', lines: [] });
+      opMap.get(id).lines.push({
+        itemId: row.item_id==='' ? null : toNum(row.item_id, null),
+        itemName: row.name,
+        category: row.category,
+        unit: row.unit,
+        systemStock: toNum(row.system_stock, 0),
+        actualStock: toNum(row.actual_stock, 0),
+        diff: toNum(row.diff, 0)
+      });
+    } else if (type==='audit') {
+      let changes = [];
+      try { changes = JSON.parse(row.changes_json || '[]'); } catch {}
+      nextState.actLog.push({
+        id: toNum(row.id, nextId()),
+        ts: row.ts || new Date().toISOString(),
+        type: row.audit_type || 'edit',
+        itemName: row.name || '',
+        unit: row.unit || '',
+        reason: row.reason || '',
+        note: row.note || '',
+        stockAtDelete: row.stock==='' ? undefined : toNum(row.stock, 0),
+        systemStock: row.system_stock==='' ? undefined : toNum(row.system_stock, 0),
+        actualStock: row.actual_stock==='' ? undefined : toNum(row.actual_stock, 0),
+        diff: row.diff==='' ? undefined : toNum(row.diff, 0),
+        changes: Array.isArray(changes) ? changes : []
+      });
+    }
+  });
+  nextState.inRec = [...inMap.values()];
+  nextState.outRec = [...outMap.values()];
+  nextState.opRec = [...opMap.values()];
+  return nextState;
+};
+
+const applyImportedState = data => {
+  if(Array.isArray(data.items)) items = data.items;
+  if(Array.isArray(data.inRec)) inRec = data.inRec;
+  if(Array.isArray(data.outRec)) outRec = data.outRec;
+  if(Array.isArray(data.opRec)) opRec = data.opRec;
+  if(Array.isArray(data.actLog)) actLog = data.actLog;
+  if(Array.isArray(data.cats)) cats = data.cats;
+  if(Array.isArray(data.units)) units = data.units;
+  if(Array.isArray(data.recipients)) recipients = data.recipients;
+  normalizeState();
+  resetDraftIn();
+  resetDraftOut();
+  resetDraftOp();
+  save();
+  render();
 };
 
 const normalizeItems = arr => (Array.isArray(arr)?arr:[]).map(it => ({
@@ -1190,33 +1369,33 @@ const confirmDel = () => {
 };
 
 // ── Export / Import ────────────────────────────────────────────
-const exportData = () => {
-  const data = {items,inRec,outRec,opRec,actLog,cats,units,recipients,exportedAt:new Date().toISOString()};
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
-  a.download = `stockpro_backup_${today()}.json`;
-  a.click();
-  toast('Data berhasil diexport!');
+const exportData = (format='csv') => {
+  if (format==='json') {
+    const data = {items,inRec,outRec,opRec,actLog,cats,units,recipients,exportedAt:new Date().toISOString()};
+    downloadFile(JSON.stringify(data,null,2), 'application/json', `stockpro_backup_${today()}.json`);
+    return toast('Data berhasil diexport ke JSON!');
+  }
+  const csv = buildCsv(buildCsvRows());
+  downloadFile(csv, 'text/csv;charset=utf-8', `stockpro_backup_${today()}.csv`);
+  toast('Data berhasil diexport ke CSV!');
 };
 const importData = e => {
   const file = e.target.files[0]; if (!file) return;
   const r = new FileReader();
   r.onload = ev => {
     try {
-      const d = JSON.parse(ev.target.result);
-      if(Array.isArray(d.items))  items  = d.items;
-      if(Array.isArray(d.inRec))  inRec  = d.inRec;
-      if(Array.isArray(d.outRec)) outRec = d.outRec;
-      if(Array.isArray(d.opRec))  opRec  = d.opRec;
-      if(Array.isArray(d.actLog)) actLog = d.actLog;
-      if(Array.isArray(d.cats))   cats   = d.cats;
-      if(Array.isArray(d.units))  units  = d.units;
-      if(Array.isArray(d.recipients)) recipients = d.recipients;
-      normalizeState();
-      resetDraftIn();
-      resetDraftOut();
-      resetDraftOp();
-      save(); toast('Data berhasil diimport!'); render();
+      const text = String(ev.target.result || '');
+      const trimmed = text.trim();
+      const isJson = file.name.toLowerCase().endsWith('.json') || trimmed.startsWith('{') || trimmed.startsWith('[');
+      if (isJson) {
+        applyImportedState(JSON.parse(text));
+        toast('Data JSON berhasil diimport!');
+      } else {
+        const rows = parseCsv(text);
+        if (!rows.length) throw new Error('CSV kosong');
+        applyImportedState(parseCsvData(rows));
+        toast('Data CSV berhasil diimport!');
+      }
     } catch { toast('File tidak valid!','err'); }
   };
   r.readAsText(file);
