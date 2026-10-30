@@ -164,7 +164,7 @@ tr:nth-child(even) td{background:#fafafa}
 .modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
 
 /* Toast */
-#toast{position:fixed;top:20px;right:20px;z-index:9999;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.18);display:none;color:#fff}
+#toast{position:fixed;bottom:20px;right:20px;max-width:min(520px,90vw);z-index:9999;padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(0,0,0,.18);display:none;color:#fff}
 
 /* Empty */
 .empty{text-align:center;color:#94a3b8;padding:40px 0;font-size:13px}
@@ -174,6 +174,54 @@ tr:nth-child(even) td{background:#fafafa}
 .page-sub{color:#64748b;font-size:13px;margin-bottom:24px}
 
 mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
+
+/* ── v2: Lot, expired, kartu stok, backup ── */
+.stat-grid.stat-6{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.line-grid-lot{display:grid;grid-template-columns:2fr 1.6fr 1fr;gap:12px}
+.lot-chip{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:6px;background:#f1f5f9;color:#334155;border:1px solid #e2e8f0;margin:2px 4px 0 0}
+.lot-chip.exp-soon{background:#fff7ed;color:#c2410c;border-color:#fed7aa}
+.lot-chip.exp-past{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.badge-exp-past{background:#fee2e2;color:#b91c1c}
+.badge-exp-soon{background:#ffedd5;color:#c2410c}
+.badge-exp-ok{background:#dcfce7;color:#16a34a}
+.item-sub{font-size:11px;color:#94a3b8;margin-top:2px}
+.code-tag{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;background:#eef2ff;color:#4338ca;padding:1px 6px;border-radius:4px;margin-right:6px}
+.backup-banner{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:#fffbeb;border:1px solid #fcd34d;border-radius:12px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#78350f}
+.backup-banner.danger{background:#fef2f2;border-color:#fca5a5;color:#7f1d1d}
+.backup-banner .bb-text{flex:1;min-width:220px;line-height:1.5}
+.backup-banner button{border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700}
+.bb-go{background:#f59e0b;color:#fff}
+.backup-banner.danger .bb-go{background:#ef4444}
+.bb-later{background:transparent;color:inherit;text-decoration:underline}
+.sidebar-footer .backup-info{font-size:11px;color:#94a3b8;line-height:1.4}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.toolbar .field{margin-bottom:0;min-width:150px}
+.toolbar .grow{flex:1;min-width:240px}
+.toolbar .btn-cancel{white-space:nowrap}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 20px;font-size:13px}
+.info-grid .k{font-size:11px;color:#64748b;text-transform:uppercase;font-weight:700;letter-spacing:.04em}
+.info-grid .v{font-weight:600;margin-top:2px}
+.ks-table td.num,.ks-table th.num{text-align:right;white-space:nowrap}
+.ks-table tr.ks-open td,.ks-table tr.ks-total td{background:#f8fafc;font-weight:700}
+.print-only{display:none}
+.lot-edit-row{display:grid;grid-template-columns:1.2fr 1fr .7fr;gap:8px;align-items:center;font-size:12px;margin-bottom:6px}
+.lot-edit-row input{padding:6px 8px;border-radius:6px;border:1px solid #e2e8f0}
+.settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px 16px}
+@media print{
+  @page{size:A4;margin:12mm}
+  body{background:#fff;font-size:11px}
+  aside,.no-print,#toast,.overlay{display:none!important}
+  #app{display:block}
+  main{padding:0}
+  .panel{box-shadow:none;border:1px solid #e2e8f0;break-inside:auto}
+  .print-only{display:block}
+  th,td{padding:5px 8px}
+  thead{display:table-header-group}
+  tr{break-inside:avoid}
+  tr:nth-child(even) td{background:#fff}
+  .badge-in,.badge-out,.badge-opname,.badge-edit{background:none!important;color:#1e293b!important;padding:0!important;font-weight:700}
+  td.num{color:#1e293b!important}
+}
 </style>
 </head>
 <body>
@@ -183,13 +231,14 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
   <aside>
     <div class="logo">
       <h1>📦 StockPro</h1>
-      <p>Sistem Monitoring Stok</p>
+      <p>Sistem Monitoring Stok · v2</p>
     </div>
     <nav id="nav"></nav>
     <div class="sidebar-footer">
       <button onclick="exportData('csv')">⬇️ Export CSV</button>
       <label>⬆️ Import CSV / JSON<input type="file" accept=".csv,.json" onchange="importData(event)" style="display:none"></label>
       <button onclick="exportData('json')">🗂️ Export JSON</button>
+      <div class="backup-info" id="backupInfo"></div>
       <div class="date" id="dateLabel"></div>
     </div>
   </aside>
@@ -201,6 +250,11 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
   <div class="modal">
     <div class="modal-head"><span class="modal-title">✏️ Edit Barang</span><button class="modal-close" onclick="closeEdit()">✕</button></div>
     <div class="field"><label>Nama Barang *</label><input id="e_name"></div>
+    <div class="row3">
+      <div class="field"><label>Kode Barang</label><input id="e_code" placeholder="SKU / kode internal"></div>
+      <div class="field"><label>Merek</label><input id="e_brand"></div>
+      <div class="field"><label>No. Izin Edar</label><input id="e_permit" placeholder="AKL / AKD / PKRT"></div>
+    </div>
     <div class="row2">
       <div class="field"><label>Kategori</label><select id="e_cat"></select></div>
       <div class="field"><label>Satuan</label><select id="e_unit"></select></div>
@@ -209,6 +263,11 @@ mark{background:#fef08a;color:#1e293b;border-radius:2px;padding:0 1px}
       <div class="field"><label>Stok</label><input type="number" min="0" id="e_stock"></div>
       <div class="field"><label>Min Stok</label><input type="number" min="0" id="e_minstock"></div>
       <div class="field"><label>Harga (Rp)</label><input type="number" min="0" id="e_price"></div>
+    </div>
+    <div id="e_lots_wrap" class="field" style="display:none">
+      <label>Tanggal Kedaluwarsa per Lot</label>
+      <div style="font-size:11px;color:#94a3b8;margin-bottom:6px">Koreksi ED di sini. Jumlah per lot diubah lewat Stok Opname.</div>
+      <div id="e_lots"></div>
     </div>
     <div class="warn-box">
       <div class="warn-title">⚠️ Wajib diisi untuk audit trail</div>
@@ -245,8 +304,12 @@ const LS = {
   actLog:'sp_log',
   cats:'sp_cats',
   units:'sp_units',
-  recipients:'sp_recipients'
+  recipients:'sp_recipients',
+  settings:'sp_settings',
+  lastBackup:'sp_last_backup',
+  backupSnooze:'sp_backup_snooze'
 };
+const DEFAULT_SETTINGS = { companyName:'', expWarnDays:90, backupRemindDays:7 };
 const lg = (k,d) => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):d; } catch { return d; } };
 const ls = (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} };
 
@@ -258,7 +321,9 @@ let actLog     = lg(LS.actLog, []);
 let cats       = lg(LS.cats, []);
 let units      = lg(LS.units, []);
 let recipients = lg(LS.recipients, []);
+let settings   = {...DEFAULT_SETTINGS, ...lg(LS.settings, {})};
 let page       = 'dashboard';
+let kartu      = { itemId:'', lot:'', from:'', to:'' };
 let editId     = null;
 let delId      = null;
 let searchSummary = '';
@@ -274,12 +339,17 @@ const save = () => {
   ls(LS.cats,cats);
   ls(LS.units,units);
   ls(LS.recipients,recipients);
+  ls(LS.settings,settings);
 };
 
 // ── Helpers ────────────────────────────────────────────────────
 const nextId = () => ++seq;
-const fmt   = d => new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
-const today = () => new Date().toISOString().slice(0,10);
+const pad2  = n => String(n).padStart(2,'0');
+const localISO = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+// Tanggal "YYYY-MM-DD" dibaca sebagai tanggal lokal (bukan UTC) agar tidak bergeser sehari.
+const parseYMD = s => { const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||'')); return m ? new Date(+m[1], +m[2]-1, +m[3]) : new Date(s); };
+const fmt   = d => parseYMD(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+const today = () => localISO(new Date());
 const fmtRp = n => 'Rp ' + Number(n).toLocaleString('id-ID');
 const esc   = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const escAttr = s => esc(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -309,10 +379,184 @@ const hl = (text, query) => {
   return [...text].map((ch,i) => used.has(i)?`<mark>${esc(ch)}</mark>`:esc(ch)).join('');
 };
 
+// ── Lot / Batch & Kedaluwarsa ──────────────────────────────────
+// Setiap barang punya stok total (it.stock) dan daftar lot (it.lots: {lot, exp, qty}).
+// Selisih stok total dikurangi jumlah semua lot = stok "tanpa lot" (data lama / barang non-lot).
+const NO_LOT = '__none__';
+const sumLots   = it => (it.lots||[]).reduce((s,l)=>s+l.qty,0);
+const unlotted  = it => Math.max(0, it.stock - sumLots(it));
+const expKey    = l => l.exp || '9999-12-31';
+const sortLots  = lots => [...lots].sort((a,b)=>expKey(a).localeCompare(expKey(b)) || a.lot.localeCompare(b.lot));
+const daysTo    = exp => exp ? Math.round((parseYMD(exp) - parseYMD(today()))/86400000) : null;
+const expState  = exp => { const d=daysTo(exp); if (d===null) return 'none'; if (d<0) return 'past'; if (d<=settings.expWarnDays) return 'soon'; return 'ok'; };
+const expLabel  = exp => { const d=daysTo(exp); if (d===null) return ''; if (d<0) return `lewat ${-d} hari`; if (d===0) return 'hari ini'; return `${d} hari lagi`; };
+const lotText   = l => `${l.lot || 'Tanpa lot'}${l.exp?` · ED ${fmt(l.exp)}`:''}`;
+const lotChip   = (l, withQty, unit='') => { const st=expState(l.exp); return `<span class="lot-chip ${st==='past'?'exp-past':st==='soon'?'exp-soon':''}" title="${escAttr(expLabel(l.exp))}">🏷️ ${esc(lotText(l))}${withQty?` · ${l.qty} ${esc(unit)}`:''}</span>`; };
+const nearestExp = it => sortLots((it.lots||[]).filter(l=>l.exp && l.qty>0))[0] || null;
+const itemLabel = (i, word='Stok') => `${i.code?`[${i.code}] `:''}${i.name} (${word}: ${i.stock} ${i.unit})`;
+
+// Terima tanggal YYYY-MM-DD, DD/MM/YYYY, atau DD-MM-YYYY (umum di Excel Indonesia)
+const normDate = v => {
+  const s = String(v||'').trim();
+  if (!s) return '';
+  let m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s);
+  if (m) return `${m[1]}-${pad2(m[2])}-${pad2(m[3])}`;
+  m = /^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/.exec(s);
+  if (m) return `${m[3]}-${pad2(m[2])}-${pad2(m[1])}`;
+  return null; // tidak valid
+};
+
+// Tambah stok ke lot (dipakai Barang Masuk). Mutasi item salinan.
+const addToLot = (it, lot, exp, qty) => {
+  it.stock += qty;
+  if (!lot) return;
+  it.lots = it.lots || [];
+  const ex = it.lots.find(l => l.lot.toLowerCase()===lot.toLowerCase());
+  if (ex) {
+    if (exp && ex.exp && ex.exp!==exp) throw new Error(`Lot ${lot} untuk ${it.name} sudah tercatat dengan ED ${fmt(ex.exp)}, berbeda dengan ${fmt(exp)}.`);
+    ex.qty += qty;
+    if (exp && !ex.exp) ex.exp = exp;
+  } else {
+    it.lots.push({lot, exp:exp||'', qty});
+  }
+};
+
+// Kurangi stok (Barang Keluar). lotSel: '' = otomatis FEFO, NO_LOT = stok tanpa lot, atau kode lot.
+// Mengembalikan alokasi [{lot, exp, qty}]. Melempar Error jika stok tidak cukup.
+const allocateOut = (it, qty, lotSel) => {
+  it.lots = (it.lots||[]).map(l=>({...l}));
+  let alloc = [];
+  if (lotSel===NO_LOT) {
+    if (qty > unlotted(it)) throw new Error(`Stok tanpa lot ${it.name} tidak cukup (tersedia ${unlotted(it)} ${it.unit}).`);
+    alloc = [{lot:'', exp:'', qty}];
+  } else if (lotSel) {
+    const l = it.lots.find(x => x.lot===lotSel);
+    if (!l) throw new Error(`Lot ${lotSel} tidak ditemukan pada ${it.name}.`);
+    if (qty > l.qty) throw new Error(`Lot ${lotSel} ${it.name} hanya tersisa ${l.qty} ${it.unit}.`);
+    l.qty -= qty;
+    alloc = [{lot:l.lot, exp:l.exp, qty}];
+  } else {
+    // FEFO: ED terdekat dulu, lot expired dilewati, lalu lot tanpa ED, lalu stok tanpa lot.
+    const usable = sortLots(it.lots.filter(l => l.qty>0 && expState(l.exp)!=='past'));
+    const avail = usable.reduce((s,l)=>s+l.qty,0) + unlotted(it);
+    if (qty > avail) {
+      const expiredQty = it.stock - avail;
+      throw new Error(expiredQty>0
+        ? `Stok ${it.name} yang belum kedaluwarsa hanya ${avail} ${it.unit} (${expiredQty} ${it.unit} sudah expired). Pilih lot secara manual bila memang mengeluarkan barang expired (retur/pemusnahan).`
+        : `Stok ${it.name} tidak cukup! Tersedia: ${it.stock} ${it.unit}`);
+    }
+    let rem = qty;
+    for (const u of usable) {
+      if (!rem) break;
+      const l = it.lots.find(x=>x.lot===u.lot);
+      const take = Math.min(rem, l.qty);
+      l.qty -= take; rem -= take;
+      alloc.push({lot:l.lot, exp:l.exp, qty:take});
+    }
+    if (rem) alloc.push({lot:'', exp:'', qty:rem});
+  }
+  it.stock -= qty;
+  it.lots = it.lots.filter(l => l.qty>0);
+  return alloc;
+};
+
+// Opname. lotSel: '' = total barang, NO_LOT = bagian tanpa lot, atau kode lot. Mengembalikan stok sistem sebelum opname.
+const applyOpname = (it, actual, lotSel) => {
+  it.lots = (it.lots||[]).map(l=>({...l}));
+  let system;
+  if (!lotSel) {
+    const minTotal = sumLots(it);
+    if (actual < minTotal) throw new Error(`Stok fisik ${it.name} (${actual}) lebih kecil dari total lot tercatat (${minTotal}). Lakukan opname per lot.`);
+    system = it.stock;
+    it.stock = actual;
+  } else if (lotSel===NO_LOT) {
+    system = unlotted(it);
+    it.stock += actual - system;
+  } else {
+    const l = it.lots.find(x=>x.lot===lotSel);
+    if (!l) throw new Error(`Lot ${lotSel} tidak ditemukan pada ${it.name}.`);
+    system = l.qty;
+    l.qty = actual;
+    it.stock += actual - system;
+  }
+  it.lots = it.lots.filter(l => l.qty>0);
+  return system;
+};
+
+const lotSelectOptions = (it, selected, mode) => {
+  // mode 'out' → default FEFO; mode 'op' → default total
+  if (!it) return `<option value="">${mode==='out'?'Otomatis (FEFO)':'Total barang'}</option>`;
+  const opts = [`<option value="" ${selected===''?'selected':''}>${mode==='out'?'Otomatis — ED terdekat dulu (FEFO)':`Total barang (${it.stock} ${esc(it.unit)})`}</option>`];
+  sortLots(it.lots||[]).forEach(l => {
+    const st = expState(l.exp);
+    opts.push(`<option value="${escAttr(l.lot)}" ${selected===l.lot?'selected':''}>${st==='past'?'⛔ EXPIRED · ':st==='soon'?'⚠️ ':''}${esc(lotText(l))} · sisa ${l.qty}</option>`);
+  });
+  if ((it.lots||[]).length && unlotted(it)>0) opts.push(`<option value="${NO_LOT}" ${selected===NO_LOT?'selected':''}>Tanpa lot · sisa ${unlotted(it)}</option>`);
+  return opts.join('');
+};
+
+const getLotRows = () => items.flatMap(it => (it.lots||[]).filter(l=>l.qty>0).map(l => ({it, ...l, days:daysTo(l.exp), state:expState(l.exp)})));
+
+// ── Export Excel (.xlsx) tanpa library ─────────────────────────
+const CRC_TABLE = (() => { const t=new Uint32Array(256); for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;} return t; })();
+const crc32 = b => { let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC_TABLE[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+const zipStore = files => {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  files.forEach(f => {
+    const name = enc.encode(f.name), data = typeof f.data==='string' ? enc.encode(f.data) : f.data;
+    const crc = crc32(data), size = data.length;
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,0,true); lh.setUint16(12,0x21,true); lh.setUint32(14,crc,true); lh.setUint32(18,size,true);
+    lh.setUint32(22,size,true); lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true);
+    ch.setUint16(10,0,true); ch.setUint16(12,0,true); ch.setUint16(14,0x21,true); ch.setUint32(16,crc,true);
+    ch.setUint32(20,size,true); ch.setUint32(24,size,true); ch.setUint16(28,name.length,true);
+    ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + size;
+  });
+  const cdSize = central.reduce((s,p)=>s+p.length,0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true);
+  end.setUint32(12,cdSize,true); end.setUint32(16,offset,true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+};
+const xmlEsc = s => String(s??'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const colName = i => { let s=''; i++; while(i>0){const m=(i-1)%26; s=String.fromCharCode(65+m)+s; i=Math.floor((i-1)/26);} return s; };
+// rows: array of arrays; cell = nilai biasa atau {v, bold:true}. widths: lebar kolom (karakter).
+const downloadXlsx = (filename, sheetName, rows, widths=[]) => {
+  const sheetRows = rows.map((row, r) => `<row r="${r+1}">${row.map((cell, c) => {
+    const o = (cell && typeof cell==='object') ? cell : {v:cell};
+    const ref = `${colName(c)}${r+1}`, s = o.bold ? ' s="1"' : '';
+    if (o.v===null || o.v===undefined || o.v==='') return o.bold ? `<c r="${ref}"${s}/>` : '';
+    if (typeof o.v==='number' && Number.isFinite(o.v)) return `<c r="${ref}"${s}><v>${o.v}</v></c>`;
+    return `<c r="${ref}" t="inlineStr"${s}><is><t xml:space="preserve">${xmlEsc(o.v)}</t></is></c>`;
+  }).join('')}</row>`).join('');
+  const cols = widths.length ? `<cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
+  const safeName = xmlEsc(String(sheetName).replace(/[\[\]:*?\/\\]/g,' ').slice(0,31) || 'Sheet1');
+  const files = [
+    {name:'[Content_Types].xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
+    {name:'_rels/.rels', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:'xl/workbook.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${safeName}" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+    {name:'xl/_rels/workbook.xml.rels', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:'xl/styles.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
+    {name:'xl/worksheets/sheet1.xml', data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${sheetRows}</sheetData></worksheet>`},
+  ];
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(zipStore(files));
+  a.download = filename;
+  a.click();
+};
+
 const CSV_HEADERS = [
   'record_type','audit_type','key','value','id','batch_id','line_index','date','ts',
   'item_id','name','category','qty','unit','price','supplier','recipient','reason','note',
-  'stock','min_stock','system_stock','actual_stock','diff','changes_json'
+  'stock','min_stock','system_stock','actual_stock','diff','changes_json',
+  'code','brand','permit_no','lot','exp','alloc_json','extra_json'
 ];
 
 const csvCell = v => {
@@ -325,7 +569,8 @@ const buildCsv = rows => [
   ...rows.map(row => CSV_HEADERS.map(h => csvCell(row[h] ?? '')).join(','))
 ].join('\r\n');
 
-const parseCsv = text => {
+const detectDelim = text => { const first=(String(text).split(/\r?\n/)[0]||''); return (!first.includes(',') && first.includes(';')) ? ';' : ','; };
+const parseCsv = (text, delim=',') => {
   const rows = [];
   let row = [];
   let cell = '';
@@ -340,7 +585,7 @@ const parseCsv = text => {
       } else cell += ch;
     } else if (ch === '"') {
       inQuotes = true;
-    } else if (ch === ',') {
+    } else if (ch === delim) {
       row.push(cell); cell = '';
     } else if (ch === '\n') {
       row.push(cell); rows.push(row); row = []; cell = '';
@@ -351,7 +596,7 @@ const parseCsv = text => {
   }
   if (cell.length || row.length) { row.push(cell); rows.push(row); }
   if (!rows.length) return [];
-  const headers = rows.shift().map(h => h.trim());
+  const headers = rows.shift().map(h => h.replace(/^\uFEFF/,'').trim());
   return rows
     .filter(cols => cols.some(col => String(col).trim() !== ''))
     .map(cols => Object.fromEntries(headers.map((h, idx) => [h, cols[idx] ?? ''])));
@@ -366,29 +611,37 @@ const downloadFile = (content, type, filename) => {
 
 const buildCsvRows = () => {
   const rows = [{record_type:'meta', key:'exported_at', value:new Date().toISOString()}];
-  items.forEach(it => rows.push({
-    record_type:'item', id:it.id, name:it.name, category:it.category, stock:it.stock, unit:it.unit, min_stock:it.minStock, price:it.price
-  }));
+  rows.push({record_type:'meta', key:'settings', value:JSON.stringify(settings)});
+  items.forEach(it => {
+    rows.push({
+      record_type:'item', id:it.id, name:it.name, category:it.category, stock:it.stock, unit:it.unit, min_stock:it.minStock, price:it.price,
+      code:it.code, brand:it.brand, permit_no:it.permitNo
+    });
+    (it.lots||[]).forEach(l => rows.push({record_type:'lot', item_id:it.id, name:it.name, lot:l.lot, exp:l.exp, qty:l.qty}));
+  });
   cats.forEach(v => rows.push({record_type:'master', key:'cat', value:v}));
   units.forEach(v => rows.push({record_type:'master', key:'unit', value:v}));
   getRecipientList().forEach(v => rows.push({record_type:'master', key:'recipient', value:v}));
   inRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
     record_type:'in_line', batch_id:tx.id, line_index:idx, date:tx.date, supplier:tx.supplier||'', note:tx.note||'',
-    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit, price:line.price
+    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit, price:line.price,
+    lot:line.lot, exp:line.exp
   })));
   outRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
     record_type:'out_line', batch_id:tx.id, line_index:idx, date:tx.date, recipient:tx.recipient||'', note:tx.note||'',
-    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit
+    item_id:line.itemId, name:line.name, category:line.category, qty:line.qty, unit:line.unit,
+    alloc_json: JSON.stringify(line.alloc||[])
   })));
   opRec.forEach(tx => (tx.lines||[]).forEach((line, idx) => rows.push({
     record_type:'op_line', batch_id:tx.id, line_index:idx, date:tx.date, reason:tx.reason||'', note:tx.note||'',
     item_id:line.itemId, name:line.itemName, category:line.category, unit:line.unit,
-    system_stock:line.systemStock, actual_stock:line.actualStock, diff:line.diff
+    system_stock:line.systemStock, actual_stock:line.actualStock, diff:line.diff, lot:line.lot, exp:line.exp
   })));
   actLog.forEach(a => rows.push({
     record_type:'audit', audit_type:a.type, id:a.id, ts:a.ts, name:a.itemName, unit:a.unit||'', reason:a.reason||'', note:a.note||'',
     stock:a.stockAtDelete ?? '', system_stock:a.systemStock ?? '', actual_stock:a.actualStock ?? '', diff:a.diff ?? '',
-    changes_json: JSON.stringify(a.changes||[])
+    changes_json: JSON.stringify(a.changes||[]),
+    extra_json: JSON.stringify({itemId:a.itemId, stockBefore:a.stockBefore, stockAfter:a.stockAfter, lot:a.lot})
   }));
   return rows;
 };
@@ -396,9 +649,13 @@ const buildCsvRows = () => {
 const parseCsvData = rows => {
   const nextState = { items:[], inRec:[], outRec:[], opRec:[], actLog:[], cats:[], units:[], recipients:[] };
   const inMap = new Map(), outMap = new Map(), opMap = new Map();
+  const lotRows = [];
+  const parseJson = (s, d) => { try { return s ? JSON.parse(s) : d; } catch { return d; } };
   rows.forEach(row => {
     const type = String(row.record_type||'').trim();
-    if (type==='item') {
+    if (type==='meta' && row.key==='settings') {
+      nextState.settings = parseJson(row.value, undefined);
+    } else if (type==='item') {
       nextState.items.push({
         id: toNum(row.id, nextId()),
         name: row.name,
@@ -406,8 +663,14 @@ const parseCsvData = rows => {
         stock: toNum(row.stock, 0),
         unit: row.unit,
         minStock: toNum(row.min_stock, 0),
-        price: toNum(row.price, 0)
+        price: toNum(row.price, 0),
+        code: row.code || '',
+        brand: row.brand || '',
+        permitNo: row.permit_no || '',
+        lots: []
       });
+    } else if (type==='lot') {
+      lotRows.push(row);
     } else if (type==='master') {
       if (row.key==='cat') nextState.cats.push(row.value);
       if (row.key==='unit') nextState.units.push(row.value);
@@ -421,7 +684,9 @@ const parseCsvData = rows => {
         category: row.category,
         qty: toNum(row.qty, 0),
         unit: row.unit,
-        price: toNum(row.price, 0)
+        price: toNum(row.price, 0),
+        lot: row.lot || '',
+        exp: row.exp || ''
       });
     } else if (type==='out_line') {
       const id = toNum(row.batch_id, nextId());
@@ -431,7 +696,8 @@ const parseCsvData = rows => {
         name: row.name,
         category: row.category,
         qty: toNum(row.qty, 0),
-        unit: row.unit
+        unit: row.unit,
+        alloc: parseJson(row.alloc_json, undefined)
       });
     } else if (type==='op_line') {
       const id = toNum(row.batch_id, nextId());
@@ -443,12 +709,19 @@ const parseCsvData = rows => {
         unit: row.unit,
         systemStock: toNum(row.system_stock, 0),
         actualStock: toNum(row.actual_stock, 0),
-        diff: toNum(row.diff, 0)
+        diff: toNum(row.diff, 0),
+        lot: row.lot || '',
+        exp: row.exp || ''
       });
     } else if (type==='audit') {
       let changes = [];
       try { changes = JSON.parse(row.changes_json || '[]'); } catch {}
+      const extra = parseJson(row.extra_json, {}) || {};
       nextState.actLog.push({
+        itemId: extra.itemId,
+        stockBefore: extra.stockBefore,
+        stockAfter: extra.stockAfter,
+        lot: extra.lot,
         id: toNum(row.id, nextId()),
         ts: row.ts || new Date().toISOString(),
         type: row.audit_type || 'edit',
@@ -463,6 +736,10 @@ const parseCsvData = rows => {
         changes: Array.isArray(changes) ? changes : []
       });
     }
+  });
+  lotRows.forEach(row => {
+    const it = nextState.items.find(i => String(i.id)===String(row.item_id));
+    if (it) it.lots.push({lot: row.lot || '', exp: row.exp || '', qty: toNum(row.qty, 0)});
   });
   nextState.inRec = [...inMap.values()];
   nextState.outRec = [...outMap.values()];
@@ -479,6 +756,7 @@ const applyImportedState = data => {
   if(Array.isArray(data.cats)) cats = data.cats;
   if(Array.isArray(data.units)) units = data.units;
   if(Array.isArray(data.recipients)) recipients = data.recipients;
+  if(data.settings && typeof data.settings==='object') settings = {...DEFAULT_SETTINGS, ...data.settings};
   normalizeState();
   resetDraftIn();
   resetDraftOut();
@@ -488,9 +766,9 @@ const applyImportedState = data => {
 };
 
 const BULK_HEADERS = {
-  in: ['kode_transaksi','tanggal','supplier','tipe_barang','nama_barang_existing','nama_barang_baru','kategori_barang_baru','satuan_barang_baru','jumlah','harga_satuan','keterangan'],
-  out: ['kode_transaksi','tanggal','tujuan_penerima','nama_barang','jumlah','keterangan','stok_saat_ini','satuan'],
-  opname: ['kode_sesi','tanggal','alasan_opname','nama_barang','stok_sistem','stok_fisik','satuan','catatan']
+  in: ['kode_transaksi','tanggal','supplier','tipe_barang','kode_barang','nama_barang_existing','nama_barang_baru','kategori_barang_baru','satuan_barang_baru','merek_barang_baru','izin_edar_barang_baru','lot','tanggal_kedaluwarsa','jumlah','harga_satuan','keterangan'],
+  out: ['kode_transaksi','tanggal','tujuan_penerima','kode_barang','nama_barang','lot','jumlah','keterangan','stok_saat_ini','satuan'],
+  opname: ['kode_sesi','tanggal','alasan_opname','kode_barang','nama_barang','lot','tanggal_kedaluwarsa','stok_sistem','stok_fisik','satuan','catatan']
 };
 
 const bulkCell = (row, key) => String(row[key] ?? '').trim();
@@ -504,15 +782,26 @@ const groupByKey = (rows, keyName) => {
   return [...map.entries()];
 };
 
-const findExistingItem = (name, category='', unit='') => {
-  const n = String(name||'').trim().toLowerCase();
-  const c = String(category||'').trim().toLowerCase();
-  const u = String(unit||'').trim().toLowerCase();
-  return items.find(it =>
+// Cari barang: kode_barang lebih diutamakan, lalu nama (+ satuan/kategori bila diisi).
+const findItemIdx = (list, {code='', name='', unit='', category=''}) => {
+  const c = code.trim().toLowerCase(), n = name.trim().toLowerCase(), u = unit.trim().toLowerCase(), k = category.trim().toLowerCase();
+  if (c) {
+    const byCode = list.findIndex(it => (it.code||'').toLowerCase()===c);
+    if (byCode!==-1) return byCode;
+  }
+  if (!n) return -1;
+  return list.findIndex(it =>
     it.name.toLowerCase()===n &&
-    (!c || it.category.toLowerCase()===c) &&
+    (!k || it.category.toLowerCase()===k) &&
     (!u || it.unit.toLowerCase()===u)
-  ) || null;
+  );
+};
+
+const bulkDate = (row, key, label) => {
+  const raw = bulkCell(row, key);
+  const d = normDate(raw);
+  if (d===null) throw new Error(`${label}: format tanggal "${raw}" tidak dikenali. Gunakan YYYY-MM-DD atau DD/MM/YYYY.`);
+  return d;
 };
 
 const buildBulkTemplateRows = type => {
@@ -522,10 +811,10 @@ const buildBulkTemplateRows = type => {
       tanggal: today(),
       supplier: '',
       tipe_barang: 'existing',
+      kode_barang: it.code || '',
       nama_barang_existing: it.name,
-      nama_barang_baru: '',
-      kategori_barang_baru: '',
-      satuan_barang_baru: '',
+      lot: '',
+      tanggal_kedaluwarsa: '',
       jumlah: '',
       harga_satuan: it.price || '',
       keterangan: ''
@@ -535,24 +824,15 @@ const buildBulkTemplateRows = type => {
       supplier: 'PT Contoh Supplier',
       tipe_barang: 'existing',
       nama_barang_existing: 'Contoh Barang',
-      nama_barang_baru: '',
-      kategori_barang_baru: '',
-      satuan_barang_baru: '',
       jumlah: '',
-      harga_satuan: '',
       keterangan: 'isi jumlah lalu import'
     }];
     return base.concat([{
       kode_transaksi: `IN-${today()}-BARU`,
       tanggal: today(),
-      supplier: '',
       tipe_barang: 'baru',
-      nama_barang_existing: '',
-      nama_barang_baru: '',
       kategori_barang_baru: cats[0] || '',
       satuan_barang_baru: units[0] || '',
-      jumlah: '',
-      harga_satuan: '',
       keterangan: 'tambahkan baris baru untuk barang yang belum ada'
     }]);
   }
@@ -561,22 +841,34 @@ const buildBulkTemplateRows = type => {
       kode_transaksi: idx<2 ? `OUT-${today()}-A` : `OUT-${today()}-R${idx+1}`,
       tanggal: today(),
       tujuan_penerima: '',
+      kode_barang: it.code || '',
       nama_barang: it.name,
+      lot: '',
       jumlah: '',
       keterangan: '',
       stok_saat_ini: it.stock ?? '',
       satuan: it.unit || ''
     }));
   }
-  return (items.length ? items : [{name:'Contoh Barang',stock:0,unit:units[0]||'pcs'}]).map((it, idx) => ({
-    kode_sesi: idx<2 ? `OP-${today()}-A` : `OP-${today()}-R${idx+1}`,
+  // Opname: satu baris per lot (jika ada), plus baris stok tanpa lot.
+  const src = items.length ? items : [{name:'Contoh Barang',stock:0,unit:units[0]||'pcs',lots:[]}];
+  const rows = [];
+  src.forEach(it => {
+    const lots = sortLots(it.lots||[]);
+    if (!lots.length) {
+      rows.push({nama_barang:it.name, kode_barang:it.code||'', lot:'', stok_sistem:it.stock ?? '', satuan:it.unit||''});
+    } else {
+      lots.forEach(l => rows.push({nama_barang:it.name, kode_barang:it.code||'', lot:l.lot, tanggal_kedaluwarsa:l.exp, stok_sistem:l.qty, satuan:it.unit||''}));
+      if (unlotted(it)>0) rows.push({nama_barang:it.name, kode_barang:it.code||'', lot:'(tanpa lot)', stok_sistem:unlotted(it), satuan:it.unit||''});
+    }
+  });
+  return rows.map((r, idx) => ({
+    kode_sesi: `OP-${today()}-A`,
     tanggal: today(),
     alasan_opname: idx===0 ? 'stok opname bulanan' : '',
-    nama_barang: it.name,
-    stok_sistem: it.stock ?? '',
     stok_fisik: '',
-    satuan: it.unit || '',
-    catatan: ''
+    catatan: '',
+    ...r
   }));
 };
 
@@ -604,7 +896,9 @@ const importBulkCsv = (e, type) => {
   const r = new FileReader();
   r.onload = ev => {
     try {
-      const rows = parseCsv(String(ev.target.result || ''));
+      // Dukung CSV dari Excel Indonesia yang memakai titik koma sebagai pemisah
+      const text = String(ev.target.result || '').replace(/^﻿/, '');
+      const rows = parseCsv(text, detectDelim(text));
       if (!rows.length) throw new Error('CSV kosong');
       if (type==='in') importBulkInRows(rows);
       else if (type==='out') importBulkOutRows(rows);
@@ -619,41 +913,49 @@ const importBulkCsv = (e, type) => {
   r.readAsText(file);
 };
 
+const inRowName = r => bulkCell(r,'nama_barang_existing') || bulkCell(r,'nama_barang_baru') || bulkCell(r,'nama_barang') || bulkCell(r,'kode_barang');
+
 const importBulkInRows = rows => {
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const txList = [];
-  for (const [code, group] of groupByKey(rows.filter(r => bulkCell(r,'nama_barang') || bulkCell(r,'jumlah')), 'kode_transaksi')) {
-    const validRows = group.filter(r => bulkCell(r,'nama_barang') && bulkCell(r,'jumlah'));
+  for (const [code, group] of groupByKey(rows.filter(r => inRowName(r) || bulkCell(r,'jumlah')), 'kode_transaksi')) {
+    const validRows = group.filter(r => inRowName(r) && bulkCell(r,'jumlah'));
     if (!validRows.length) continue;
     const supplier = bulkCell(validRows[0],'supplier');
     const note = bulkCell(validRows[0],'keterangan');
-    const date = bulkCell(validRows[0],'tanggal') || today();
+    const date = bulkDate(validRows[0],'tanggal',`CSV masuk ${code}`) || today();
     const lines = [];
     validRows.forEach((row, idx) => {
       const typeRaw = bulkCell(row,'tipe_barang').toLowerCase();
       const isNew = typeRaw === 'baru' || (!bulkCell(row,'nama_barang_existing') && !!bulkCell(row,'nama_barang_baru'));
+      const itemCode = bulkCell(row,'kode_barang');
       const name = isNew ? bulkCell(row,'nama_barang_baru') : (bulkCell(row,'nama_barang_existing') || bulkCell(row,'nama_barang'));
       const category = isNew ? bulkCell(row,'kategori_barang_baru') : bulkCell(row,'kategori');
       const unit = isNew ? bulkCell(row,'satuan_barang_baru') : bulkCell(row,'satuan');
       const qty = toNum(bulkCell(row,'jumlah'), 0);
       const priceRaw = bulkCell(row,'harga_satuan');
       const price = priceRaw==='' ? null : toNum(priceRaw, NaN);
-      if (!name) throw new Error(`CSV masuk: nama_barang kosong pada batch ${code}, baris ${idx+1}`);
-      if (!qty || qty<=0) throw new Error(`CSV masuk: jumlah tidak valid untuk ${name}`);
-      if (price!==null && !Number.isFinite(price)) throw new Error(`CSV masuk: harga_satuan tidak valid untuk ${name}`);
-      let itemIdx = nextItems.findIndex(it => it.name.toLowerCase()===name.toLowerCase() && (!category || it.category.toLowerCase()===category.toLowerCase()) && (!unit || it.unit.toLowerCase()===unit.toLowerCase()));
+      const lot = bulkCell(row,'lot');
+      const exp = bulkDate(row,'tanggal_kedaluwarsa',`CSV masuk ${code} baris ${idx+1}`);
+      if (!name && !itemCode) throw new Error(`CSV masuk: nama barang kosong pada batch ${code}, baris ${idx+1}`);
+      if (!qty || qty<=0) throw new Error(`CSV masuk: jumlah tidak valid untuk ${name||itemCode}`);
+      if (price!==null && !Number.isFinite(price)) throw new Error(`CSV masuk: harga_satuan tidak valid untuk ${name||itemCode}`);
+      let itemIdx = findItemIdx(nextItems, {code:itemCode, name, unit, category});
       if (itemIdx===-1) {
-        if (!category || !unit) throw new Error(`CSV masuk: barang baru "${name}" wajib isi kategori dan satuan`);
-        itemIdx = nextItems.push({id:nextId(), name, category, stock:0, unit, minStock:10, price:0}) - 1;
+        if (!isNew) throw new Error(`CSV masuk: barang "${name||itemCode}" tidak ditemukan. Untuk barang baru isi tipe_barang = baru.`);
+        if (!name || !category || !unit) throw new Error(`CSV masuk: barang baru "${name}" wajib isi nama, kategori, dan satuan`);
+        itemIdx = nextItems.push({id:nextId(), name, category, stock:0, unit, minStock:10, price:0,
+          code:itemCode, brand:bulkCell(row,'merek_barang_baru'), permitNo:bulkCell(row,'izin_edar_barang_baru'), lots:[]}) - 1;
       }
-      const finalPrice = price===null ? (nextItems[itemIdx].price||0) : price;
-      nextItems[itemIdx].stock += qty;
-      nextItems[itemIdx].price = finalPrice;
-      lines.push({itemId:nextItems[itemIdx].id, name:nextItems[itemIdx].name, category:nextItems[itemIdx].category, qty, unit:nextItems[itemIdx].unit, price:finalPrice});
+      const it = nextItems[itemIdx];
+      const finalPrice = price===null ? (it.price||0) : price;
+      addToLot(it, lot, exp, qty);
+      it.price = finalPrice;
+      lines.push({itemId:it.id, name:it.name, category:it.category, qty, unit:it.unit, price:finalPrice, lot, exp: lot ? ((it.lots.find(l=>l.lot.toLowerCase()===lot.toLowerCase())||{}).exp||exp) : ''});
     });
     txList.push({id:nextId(), date, supplier, note, lines});
   }
-  if (!txList.length) throw new Error('CSV masuk tidak punya baris transaksi yang bisa diproses');
+  if (!txList.length) throw new Error('CSV masuk tidak punya baris transaksi yang bisa diproses (cek kolom nama barang dan jumlah)');
   items = nextItems;
   inRec = [...txList.reverse(), ...inRec];
   resetDraftIn();
@@ -663,27 +965,32 @@ const importBulkInRows = rows => {
 };
 
 const importBulkOutRows = rows => {
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const txList = [];
   const nextRecipients = [...recipients];
-  for (const [code, group] of groupByKey(rows.filter(r => bulkCell(r,'nama_barang') || bulkCell(r,'jumlah')), 'kode_transaksi')) {
-    const validRows = group.filter(r => bulkCell(r,'nama_barang') && bulkCell(r,'jumlah'));
+  const rowName = r => bulkCell(r,'nama_barang') || bulkCell(r,'kode_barang');
+  for (const [code, group] of groupByKey(rows.filter(r => rowName(r) || bulkCell(r,'jumlah')), 'kode_transaksi')) {
+    const validRows = group.filter(r => rowName(r) && bulkCell(r,'jumlah'));
     if (!validRows.length) continue;
     const recipient = bulkCell(validRows[0],'tujuan_penerima');
     const note = bulkCell(validRows[0],'keterangan');
-    const date = bulkCell(validRows[0],'tanggal') || today();
+    const date = bulkDate(validRows[0],'tanggal',`CSV keluar ${code}`) || today();
     const lines = [];
     validRows.forEach((row, idx) => {
       const name = bulkCell(row,'nama_barang');
+      const itemCode = bulkCell(row,'kode_barang');
       const unit = bulkCell(row,'satuan');
       const qty = toNum(bulkCell(row,'jumlah'), 0);
-      if (!name) throw new Error(`CSV keluar: nama_barang kosong pada batch ${code}, baris ${idx+1}`);
-      if (!qty || qty<=0) throw new Error(`CSV keluar: jumlah tidak valid untuk ${name}`);
-      const itemIdx = nextItems.findIndex(it => it.name.toLowerCase()===name.toLowerCase() && (!unit || it.unit.toLowerCase()===unit.toLowerCase()));
-      if (itemIdx===-1) throw new Error(`CSV keluar: barang "${name}" tidak ditemukan`);
-      if (qty>nextItems[itemIdx].stock) throw new Error(`CSV keluar: stok ${name} tidak cukup`);
-      nextItems[itemIdx].stock -= qty;
-      lines.push({itemId:nextItems[itemIdx].id, name:nextItems[itemIdx].name, category:nextItems[itemIdx].category, qty, unit:nextItems[itemIdx].unit});
+      const lotRaw = bulkCell(row,'lot');
+      if (!qty || qty<=0) throw new Error(`CSV keluar: jumlah tidak valid untuk ${name||itemCode}`);
+      const itemIdx = findItemIdx(nextItems, {code:itemCode, name, unit});
+      if (itemIdx===-1) throw new Error(`CSV keluar: barang "${name||itemCode}" tidak ditemukan`);
+      const it = nextItems[itemIdx];
+      const lotSel = !lotRaw ? '' : /^\(?tanpa lot\)?$/i.test(lotRaw) ? NO_LOT : ((it.lots||[]).find(l=>l.lot.toLowerCase()===lotRaw.toLowerCase())||{lot:lotRaw}).lot;
+      let alloc;
+      try { alloc = allocateOut(it, qty, lotSel); }
+      catch (err) { throw new Error(`CSV keluar (${code}): ${err.message}`); }
+      lines.push({itemId:it.id, name:it.name, category:it.category, qty, unit:it.unit, alloc});
     });
     txList.push({id:nextId(), date, recipient, note, lines});
     if (recipient && !nextRecipients.map(r=>r.toLowerCase()).includes(recipient.toLowerCase())) nextRecipients.push(recipient);
@@ -699,33 +1006,55 @@ const importBulkOutRows = rows => {
 };
 
 const importBulkOpRows = rows => {
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const txList = [];
   const newLogs = [];
-  for (const [code, group] of groupByKey(rows.filter(r => bulkCell(r,'nama_barang') || bulkCell(r,'stok_fisik')), 'kode_sesi')) {
-    const validRows = group.filter(r => bulkCell(r,'nama_barang') && bulkCell(r,'stok_fisik'));
+  const rowName = r => bulkCell(r,'nama_barang') || bulkCell(r,'kode_barang');
+  for (const [code, group] of groupByKey(rows.filter(r => rowName(r) || bulkCell(r,'stok_fisik')), 'kode_sesi')) {
+    const validRows = group.filter(r => rowName(r) && bulkCell(r,'stok_fisik'));
     if (!validRows.length) continue;
     const reason = bulkCell(validRows[0],'alasan_opname');
     const note = bulkCell(validRows[0],'catatan');
-    const date = bulkCell(validRows[0],'tanggal') || today();
+    const date = bulkDate(validRows[0],'tanggal',`CSV opname ${code}`) || today();
     if (!reason) throw new Error(`CSV opname: alasan_opname wajib diisi untuk sesi ${code}`);
     const seen = new Set();
     const lines = [];
     validRows.forEach((row, idx) => {
       const name = bulkCell(row,'nama_barang');
+      const itemCode = bulkCell(row,'kode_barang');
       const unit = bulkCell(row,'satuan');
       const actual = toNum(bulkCell(row,'stok_fisik'), NaN);
-      if (!name) throw new Error(`CSV opname: nama_barang kosong pada sesi ${code}, baris ${idx+1}`);
-      if (!Number.isFinite(actual) || actual<0) throw new Error(`CSV opname: stok_fisik tidak valid untuk ${name}`);
-      const itemIdx = nextItems.findIndex(it => it.name.toLowerCase()===name.toLowerCase() && (!unit || it.unit.toLowerCase()===unit.toLowerCase()));
-      if (itemIdx===-1) throw new Error(`CSV opname: barang "${name}" tidak ditemukan`);
-      if (seen.has(nextItems[itemIdx].id)) throw new Error(`CSV opname: barang "${name}" dobel dalam satu sesi`);
-      seen.add(nextItems[itemIdx].id);
-      const systemStock = nextItems[itemIdx].stock;
+      const lotRaw = bulkCell(row,'lot');
+      if (!Number.isFinite(actual) || actual<0) throw new Error(`CSV opname: stok_fisik tidak valid untuk ${name||itemCode}`);
+      const itemIdx = findItemIdx(nextItems, {code:itemCode, name, unit});
+      if (itemIdx===-1) throw new Error(`CSV opname: barang "${name||itemCode}" tidak ditemukan`);
+      const it = nextItems[itemIdx];
+      const hasLots = (it.lots||[]).length>0;
+      let lotSel = '';
+      let lotExp = '';
+      if (lotRaw) {
+        if (/^\(?tanpa lot\)?$/i.test(lotRaw)) lotSel = NO_LOT;
+        else {
+          const ex = (it.lots||[]).find(l=>l.lot.toLowerCase()===lotRaw.toLowerCase());
+          if (ex) { lotSel = ex.lot; lotExp = ex.exp; }
+          else {
+            // Lot ditemukan saat hitung fisik tapi belum tercatat: buat lot baru dengan stok sistem 0
+            const exp = bulkDate(row,'tanggal_kedaluwarsa',`CSV opname ${code} baris ${idx+1}`);
+            it.lots = [...(it.lots||[]), {lot:lotRaw, exp, qty:0}];
+            lotSel = lotRaw; lotExp = exp;
+          }
+        }
+      } else if (hasLots) lotSel = '';
+      const key = `${it.id}|${lotSel}`;
+      if (seen.has(key)) throw new Error(`CSV opname: barang "${it.name}"${lotSel?` lot ${lotSel}`:''} dobel dalam satu sesi`);
+      seen.add(key);
+      let systemStock;
+      try { systemStock = applyOpname(it, actual, lotSel); }
+      catch (err) { throw new Error(`CSV opname (${code}): ${err.message}`); }
       const diff = actual - systemStock;
-      nextItems[itemIdx].stock = actual;
-      lines.push({itemId:nextItems[itemIdx].id, itemName:nextItems[itemIdx].name, category:nextItems[itemIdx].category, unit:nextItems[itemIdx].unit, systemStock, actualStock:actual, diff});
-      newLogs.push({id:nextId(), ts:new Date().toISOString(), type:'opname', itemName:nextItems[itemIdx].name, systemStock, actualStock:actual, diff, unit:nextItems[itemIdx].unit, reason, note});
+      const lotOut = lotSel===NO_LOT ? '' : lotSel;
+      lines.push({itemId:it.id, itemName:it.name, category:it.category, unit:it.unit, systemStock, actualStock:actual, diff, lot:lotOut, lotMode: lotSel===NO_LOT ? 'none' : lotSel ? 'lot' : 'total', exp:lotExp});
+      newLogs.push({id:nextId(), ts:new Date().toISOString(), type:'opname', itemId:it.id, itemName:it.name, systemStock, actualStock:actual, diff, unit:it.unit, reason, note, lot:lotOut});
     });
     txList.push({id:nextId(), date, reason, note, lines});
   }
@@ -746,8 +1075,19 @@ const normalizeItems = arr => (Array.isArray(arr)?arr:[]).map(it => ({
   stock: Math.max(0, toNum(it.stock, 0)),
   unit: String(it.unit||'').trim(),
   minStock: Math.max(0, toNum(it.minStock, 0)),
-  price: Math.max(0, toNum(it.price, 0))
-})).filter(it => it.name);
+  price: Math.max(0, toNum(it.price, 0)),
+  code: String(it.code||'').trim(),
+  brand: String(it.brand||'').trim(),
+  permitNo: String(it.permitNo||'').trim(),
+  lots: (Array.isArray(it.lots)?it.lots:[])
+    .map(l => ({lot:String(l.lot||'').trim(), exp:normDate(l.exp)||'', qty:Math.max(0, toNum(l.qty,0))}))
+    .filter(l => l.lot && l.qty>0)
+})).filter(it => it.name).map(it => {
+  // Jaga konsistensi: stok total tidak boleh lebih kecil dari jumlah lot
+  const lotSum = sumLots(it);
+  if (it.stock < lotSum) it.stock = lotSum;
+  return it;
+});
 
 const normalizeInLine = line => ({
   itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
@@ -755,14 +1095,20 @@ const normalizeInLine = line => ({
   category: String(line.category||'').trim(),
   qty: Math.max(0, toNum(line.qty, 0)),
   unit: String(line.unit||'').trim(),
-  price: Math.max(0, toNum(line.price, 0))
+  price: Math.max(0, toNum(line.price, 0)),
+  lot: String(line.lot||'').trim(),
+  exp: normDate(line.exp)||''
 });
 const normalizeOutLine = line => ({
   itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
   name: String(line.name||line.itemName||'').trim(),
   category: String(line.category||'').trim(),
   qty: Math.max(0, toNum(line.qty, 0)),
-  unit: String(line.unit||'').trim()
+  unit: String(line.unit||'').trim(),
+  // Data lama tanpa alokasi lot dianggap keluar dari stok tanpa lot
+  alloc: Array.isArray(line.alloc) && line.alloc.length
+    ? line.alloc.map(a => ({lot:String(a.lot||'').trim(), exp:normDate(a.exp)||'', qty:Math.max(0, toNum(a.qty,0))}))
+    : [{lot:'', exp:'', qty:Math.max(0, toNum(line.qty, 0))}]
 });
 const normalizeOpLine = line => ({
   itemId: line.itemId===undefined || line.itemId===null || line.itemId==='' ? null : toNum(line.itemId, null),
@@ -771,7 +1117,10 @@ const normalizeOpLine = line => ({
   unit: String(line.unit||'').trim(),
   systemStock: Math.max(0, toNum(line.systemStock, 0)),
   actualStock: Math.max(0, toNum(line.actualStock, 0)),
-  diff: toNum(line.diff, toNum(line.actualStock, 0) - toNum(line.systemStock, 0))
+  diff: toNum(line.diff, toNum(line.actualStock, 0) - toNum(line.systemStock, 0)),
+  lot: String(line.lot||'').trim(),
+  lotMode: ['total','none','lot'].includes(line.lotMode) ? line.lotMode : (line.lot ? 'lot' : 'total'),
+  exp: normDate(line.exp)||''
 });
 
 const normalizeInRec = arr => (Array.isArray(arr)?arr:[]).map(tx => {
@@ -851,9 +1200,9 @@ const getOpLines = () => opRec.flatMap(tx => (tx.lines||[]).map((line, idx) => (
 const getSupplierList = () => uniqText(inRec.map(tx => tx.supplier).filter(Boolean));
 const getRecipientList = () => uniqText([...(Array.isArray(recipients)?recipients:[]), ...outRec.map(tx => tx.recipient).filter(Boolean)]);
 
-const newInRow = () => ({ rowId: nextId(), itemId:'', newName:'', category:cats[0]||'', unit:units[0]||'', qty:'', price:'' });
-const newOutRow = () => ({ rowId: nextId(), itemId:'', qty:'' });
-const newOpRow = () => ({ rowId: nextId(), itemId:'', actualStock:'' });
+const newInRow = () => ({ rowId: nextId(), itemId:'', newName:'', newCode:'', newBrand:'', newPermit:'', category:cats[0]||'', unit:units[0]||'', qty:'', price:'', lot:'', exp:'' });
+const newOutRow = () => ({ rowId: nextId(), itemId:'', lot:'', qty:'' });
+const newOpRow = () => ({ rowId: nextId(), itemId:'', lot:'', actualStock:'' });
 let draftIn, draftOut, draftOp;
 const resetDraftIn = () => { draftIn = { date:today(), supplierSelect:'', newSupplier:'', note:'', rows:[newInRow()] }; };
 const resetDraftOut = () => { draftOut = { date:today(), recipientSelect:'', newRecipient:'', note:'', rows:[newOutRow()] }; };
@@ -882,6 +1231,7 @@ const NAV = [
   {key:'out',       label:'Barang Keluar', icon:'📤'},
   {key:'opname',    label:'Stok Opname',   icon:'🧮'},
   {key:'summary',   label:'Ringkasan',     icon:'📋'},
+  {key:'kartu',     label:'Kartu Stok',    icon:'📒'},
   {key:'manage',    label:'Kelola Barang', icon:'⚙️'},
   {key:'settings',  label:'Pengaturan',    icon:'🛠️'},
 ];
@@ -891,15 +1241,45 @@ const renderNav = () => {
     `<button class="${page===n.key?'active':''}" onclick="go('${n.key}')">${n.icon} ${n.label}</button>`
   ).join('');
   document.getElementById('dateLabel').textContent = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'short',year:'numeric'});
+  renderBackupInfo();
 };
 
-const go = p => { page=p; render(); };
+const go = p => { page=p; render(); window.scrollTo(0,0); };
+
+// ── Pengingat Backup ───────────────────────────────────────────
+const hasData = () => items.length || inRec.length || outRec.length || opRec.length;
+const lastBackupAt = () => lg(LS.lastBackup, null);
+const daysSinceBackup = () => { const t=lastBackupAt(); return t ? Math.floor((Date.now()-new Date(t).getTime())/86400000) : null; };
+const backupBanner = () => {
+  if (!hasData() || !settings.backupRemindDays) return '';
+  const snooze = lg(LS.backupSnooze, null);
+  if (snooze && Date.now() < snooze) return '';
+  const d = daysSinceBackup();
+  if (d!==null && d < settings.backupRemindDays) return '';
+  const danger = d===null || d >= settings.backupRemindDays*2;
+  const msg = d===null
+    ? '<strong>Data stok belum pernah di-backup.</strong> Semua data hanya tersimpan di browser ini — jika cache browser dihapus atau komputer rusak, data bisa hilang.'
+    : `<strong>Backup terakhir ${d} hari lalu</strong> (${new Date(lastBackupAt()).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'})}). Disarankan backup setiap ${settings.backupRemindDays} hari.`;
+  return `<div class="backup-banner no-print ${danger?'danger':''}">
+    <span style="font-size:22px">💾</span>
+    <div class="bb-text">${msg}</div>
+    <button class="bb-go" onclick="exportData('json')">Backup Sekarang (JSON)</button>
+    <button class="bb-later" onclick="snoozeBackup()">Ingatkan besok</button>
+  </div>`;
+};
+const snoozeBackup = () => { ls(LS.backupSnooze, Date.now()+86400000); syncAllDrafts(); render(); };
+const renderBackupInfo = () => {
+  const el = document.getElementById('backupInfo');
+  if (!el) return;
+  const t = lastBackupAt();
+  el.textContent = t ? `💾 Backup terakhir: ${new Date(t).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})}` : '💾 Belum pernah backup';
+};
 
 // ── Render ─────────────────────────────────────────────────────
 const render = () => {
   renderNav();
-  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, manage:pageManage, settings:pageSettings };
-  document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, kartu:pageKartu, manage:pageManage, settings:pageSettings };
+  document.getElementById('main').innerHTML = backupBanner() + (pages[page]||pageDashboard)();
 };
 
 // ── DASHBOARD ──────────────────────────────────────────────────
@@ -908,15 +1288,22 @@ const pageDashboard = () => {
   const totalOut = getOutLines().reduce((s,r)=>s+r.qty,0);
   const low      = items.filter(i=>i.stock<=i.minStock);
   const totalVal = items.reduce((s,i)=>s+i.stock*(i.price||0),0);
+  const lotRows  = getLotRows();
+  const expPast  = lotRows.filter(r=>r.state==='past');
+  const expSoon  = lotRows.filter(r=>r.state==='soon');
+  const expList  = [...expPast, ...expSoon].sort((a,b)=>expKey(a).localeCompare(expKey(b)));
+  const expVal   = expPast.reduce((s,r)=>s+r.qty*(r.it.price||0),0);
   return `
   <div class="page-title">Dashboard Monitoring Stok</div>
   <div class="page-sub">Ringkasan kondisi stok terkini</div>
-  <div class="stat-grid">
+  <div class="stat-grid stat-6">
     ${[
       {l:'Total Jenis Barang',v:items.length,    ic:'🗂️',c:'#6366f1'},
       {l:'Total Barang Masuk',v:totalIn,          ic:'📥',c:'#0ea5e9'},
       {l:'Total Barang Keluar',v:totalOut,        ic:'📤',c:'#f59e0b'},
       {l:'Stok Menipis',       v:low.length,      ic:'⚠️',c:'#ef4444'},
+      {l:`Lot ED ≤ ${settings.expWarnDays} hari`, v:expSoon.length, ic:'⏰',c:'#ea580c'},
+      {l:'Lot Sudah Expired',  v:expPast.length,  ic:'⛔',c:'#b91c1c'},
     ].map(c=>`<div class="stat-card" style="border-top:4px solid ${c.c}">
       <div class="icon">${c.ic}</div>
       <div class="val" style="color:${c.c}">${c.v}</div>
@@ -927,27 +1314,60 @@ const pageDashboard = () => {
     <div>
       <div class="sub">💰 Total Nilai Stok Keseluruhan</div>
       <div class="big">${fmtRp(totalVal)}</div>
-      <div class="note">berdasarkan harga terakhir × stok saat ini</div>
+      <div class="note">berdasarkan harga terakhir × stok saat ini${expVal>0?` · termasuk ${fmtRp(expVal)} stok yang sudah expired`:''}</div>
     </div>
     <div class="emoji">💵</div>
   </div>
+  ${expList.length?`
+  <div class="panel">
+    <div class="panel-head" style="justify-content:space-between">
+      <span>⏰ Lot Mendekati / Sudah Kedaluwarsa <span style="font-size:12px;color:#64748b;font-weight:600">(${expList.length} lot)</span></span>
+      <button class="btn-cancel no-print" style="padding:6px 12px;font-size:12px" onclick="exportExpiryXlsx()">⬇️ Export Excel</button>
+    </div>
+    <table>
+      <thead><tr><th>Status</th><th>Barang</th><th>No. Lot</th><th>Tgl Kedaluwarsa</th><th>Sisa Waktu</th><th>Qty</th><th>Nilai</th></tr></thead>
+      <tbody>${expList.map(r=>`<tr>
+        <td><span class="badge ${r.state==='past'?'badge-exp-past':'badge-exp-soon'}">${r.state==='past'?'⛔ Expired':'⏰ Segera'}</span></td>
+        <td><strong>${esc(r.it.name)}</strong>${r.it.code?`<div class="item-sub">${esc(r.it.code)}</div>`:''}</td>
+        <td>${esc(r.lot)}</td>
+        <td>${fmt(r.exp)}</td>
+        <td style="font-weight:700;color:${r.state==='past'?'#b91c1c':'#c2410c'}">${expLabel(r.exp)}</td>
+        <td>${r.qty} ${esc(r.it.unit)}</td>
+        <td>${r.it.price?fmtRp(r.qty*r.it.price):'–'}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`:''}
   <div class="panel">
     <div class="panel-head">📦 Daftar Stok Barang</div>
     ${items.length===0?'<div class="empty">Belum ada barang. Tambahkan melalui halaman Barang Masuk.</div>':`
     <table>
-      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Harga Satuan</th><th>Stok</th><th>Nilai Stok</th><th>Status</th></tr></thead>
-      <tbody>${items.map(it=>{const isLow=it.stock<=it.minStock;return`
+      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Harga Satuan</th><th>Stok</th><th>Nilai Stok</th><th>ED Terdekat</th><th>Status</th></tr></thead>
+      <tbody>${items.map(it=>{const isLow=it.stock<=it.minStock;const ne=nearestExp(it);const st=ne?expState(ne.exp):'none';return`
         <tr>
-          <td><strong>${esc(it.name)}</strong></td>
+          <td><strong>${it.code?`<span class="code-tag">${esc(it.code)}</span>`:''}${esc(it.name)}</strong>${it.brand?`<div class="item-sub">${esc(it.brand)}</div>`:''}</td>
           <td style="color:#64748b">${esc(it.category)}</td>
           <td>${it.price?fmtRp(it.price):'<span style="color:#cbd5e1;font-style:italic">–</span>'}</td>
           <td style="font-weight:700;color:${isLow?'#ef4444':'#22c55e'}">${it.stock} <span style="font-size:11px;font-weight:400;color:#94a3b8">${esc(it.unit)}</span></td>
           <td style="font-weight:700">${it.price?fmtRp(it.stock*it.price):'<span style="color:#cbd5e1;font-style:italic">–</span>'}</td>
+          <td>${ne?`<span style="font-weight:600;color:${st==='past'?'#b91c1c':st==='soon'?'#c2410c':'#334155'}">${fmt(ne.exp)}</span><div class="item-sub">${esc(expLabel(ne.exp))}</div>`:'<span style="color:#cbd5e1">–</span>'}</td>
           <td><span class="badge ${isLow?'badge-low':'badge-ok'}">${isLow?'⚠️ Menipis':'✅ Aman'}</span></td>
         </tr>`}).join('')}</tbody>
     </table>`}
   </div>
   ${low.length>0?`<div class="alert-low"><h4>⚠️ Peringatan Stok Menipis</h4><div class="low-chips">${low.map(i=>`<span class="low-chip">${esc(i.name)}: ${i.stock} ${esc(i.unit)}</span>`).join('')}</div></div>`:''}`;
+};
+
+const exportExpiryXlsx = () => {
+  const list = getLotRows().filter(r=>r.state==='past'||r.state==='soon').sort((a,b)=>expKey(a).localeCompare(expKey(b)));
+  const rows = [
+    [{v:`Daftar Lot Mendekati / Sudah Kedaluwarsa${settings.companyName?` — ${settings.companyName}`:''}`, bold:true}],
+    [`Per tanggal ${fmt(today())} · batas peringatan ${settings.expWarnDays} hari`],
+    [],
+    ['Status','Kode Barang','Nama Barang','Merek','No. Izin Edar','No. Lot','Tgl Kedaluwarsa','Sisa Hari','Qty','Satuan','Harga Satuan','Nilai'].map(v=>({v,bold:true})),
+    ...list.map(r => [r.state==='past'?'Expired':'Segera expired', r.it.code, r.it.name, r.it.brand, r.it.permitNo, r.lot, r.exp, r.days, r.qty, r.it.unit, r.it.price||0, r.qty*(r.it.price||0)])
+  ];
+  downloadXlsx(`lot_kedaluwarsa_${today()}.xlsx`, 'Lot Kedaluwarsa', rows, [16,14,30,16,18,14,15,10,8,10,14,16]);
+  toast('Daftar lot kedaluwarsa diexport ke Excel.');
 };
 
 // ── BARANG MASUK ───────────────────────────────────────────────
@@ -962,6 +1382,11 @@ const syncDraftInFromDom = () => {
     rowId: Number(row.dataset.rowId),
     itemId: row.querySelector('[data-field="itemId"]').value,
     newName: (row.querySelector('[data-field="newName"]')||{value:''}).value,
+    newCode: (row.querySelector('[data-field="newCode"]')||{value:''}).value,
+    newBrand: (row.querySelector('[data-field="newBrand"]')||{value:''}).value,
+    newPermit: (row.querySelector('[data-field="newPermit"]')||{value:''}).value,
+    lot: (row.querySelector('[data-field="lot"]')||{value:''}).value,
+    exp: (row.querySelector('[data-field="exp"]')||{value:''}).value,
     category: (row.querySelector('[data-field="category"]')||{value:''}).value,
     unit: (row.querySelector('[data-field="unit"]')||{value:''}).value,
     qty: (row.querySelector('[data-field="qty"]')||{value:''}).value,
@@ -978,6 +1403,7 @@ const syncDraftOutFromDom = () => {
   draftOut.rows = [...document.querySelectorAll('#out_rows .line-row')].map(row => ({
     rowId: Number(row.dataset.rowId),
     itemId: row.querySelector('[data-field="itemId"]').value,
+    lot: (row.querySelector('[data-field="lot"]')||{value:''}).value,
     qty: (row.querySelector('[data-field="qty"]')||{value:''}).value
   }));
 };
@@ -990,6 +1416,7 @@ const syncDraftOpFromDom = () => {
   draftOp.rows = [...document.querySelectorAll('#op_rows .line-row')].map(row => ({
     rowId: Number(row.dataset.rowId),
     itemId: row.querySelector('[data-field="itemId"]').value,
+    lot: (row.querySelector('[data-field="lot"]')||{value:''}).value,
     actualStock: (row.querySelector('[data-field="actualStock"]')||{value:''}).value
   }));
 };
@@ -1005,6 +1432,18 @@ const inRowItemChange = (rowId, val) => {
     row.category = row.category || cats[0] || '';
     row.unit = row.unit || units[0] || '';
   }
+  renderMain();
+};
+const outRowItemChange = (rowId, val) => {
+  syncDraftOutFromDom();
+  const row = draftOut.rows.find(r => r.rowId===rowId);
+  if (row) { row.itemId = val; row.lot = ''; }
+  renderMain();
+};
+const opRowItemChange = (rowId, val) => {
+  syncDraftOpFromDom();
+  const row = draftOp.rows.find(r => r.rowId===rowId);
+  if (row) { row.itemId = val; row.lot = ''; }
   renderMain();
 };
 const addInRow = () => { syncDraftInFromDom(); draftIn.rows.push(newInRow()); renderMain(); };
@@ -1075,17 +1514,26 @@ const pageIn = () => {
               <div class="field"><label>Pilih Barang *</label>
                 <select data-field="itemId" onchange="inRowItemChange(${row.rowId},this.value)">
                   <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
-                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(itemLabel(i))}</option>`).join('')}
                   <option value="__new__" ${row.itemId==='__new__'?'selected':''}>➕ Tambah Barang Baru...</option>
                 </select>
               </div>
               <div class="field"><label>Jumlah *</label><input type="number" min="1" data-field="qty" value="${escAttr(row.qty)}" placeholder="0"></div>
               <div class="field"><label>Harga Satuan</label><input type="number" min="0" data-field="price" value="${escAttr(row.price)}" placeholder="opsional"></div>
             </div>
+            <div class="line-grid-2">
+              <div class="field"><label>No. Lot / Batch</label><input data-field="lot" value="${escAttr(row.lot)}" placeholder="kosongkan jika tidak ada lot"></div>
+              <div class="field"><label>Tgl Kedaluwarsa (ED)</label><input type="date" data-field="exp" value="${escAttr(row.exp)}"></div>
+            </div>
             ${row.itemId==='__new__'?`
             <div class="new-box" style="margin-top:12px;margin-bottom:0">
               <div class="new-title">🆕 Detail Barang Baru</div>
               <div class="field"><label>Nama Barang Baru *</label><input data-field="newName" value="${escAttr(row.newName)}" placeholder="contoh: Sarung Tangan Nitril"></div>
+              <div class="row3">
+                <div class="field"><label>Kode Barang</label><input data-field="newCode" value="${escAttr(row.newCode)}" placeholder="opsional"></div>
+                <div class="field"><label>Merek</label><input data-field="newBrand" value="${escAttr(row.newBrand)}" placeholder="opsional"></div>
+                <div class="field"><label>No. Izin Edar</label><input data-field="newPermit" value="${escAttr(row.newPermit)}" placeholder="AKL/AKD, opsional"></div>
+              </div>
               <div class="line-grid-2">
                 <div class="field"><label>Kategori *</label>
                   ${cats.length===0?'<div class="err-hint">⚠️ Belum ada kategori. Tambahkan di Pengaturan.</div>':
@@ -1116,6 +1564,7 @@ const pageIn = () => {
               <div class="batch-line-left">
                 <div class="batch-line-name">${esc(line.name)}</div>
                 <div class="batch-line-sub">${esc(line.category)}${line.price>0?` • ${fmtRp(line.price)}/satuan`:''}</div>
+                ${line.lot?`<div>${lotChip(line,false)}</div>`:''}
               </div>
               <div class="batch-line-right">
                 <div class="badge-in">+${line.qty} ${esc(line.unit)}</div>
@@ -1133,35 +1582,44 @@ const submitIn = () => {
   const supplier = draftIn.supplierSelect==='__new__' ? draftIn.newSupplier.trim() : draftIn.supplierSelect.trim();
   if (draftIn.supplierSelect==='__new__' && !supplier) return toast('Nama supplier wajib diisi!','err');
   if (!draftIn.rows.length) return toast('Tambahkan minimal 1 baris barang!','err');
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const lines = [];
-  for (const row of draftIn.rows) {
-    const qty = toNum(row.qty, 0);
-    const price = row.price==='' ? null : Number(row.price);
-    if (!row.itemId) return toast('Semua baris wajib memilih barang!','err');
-    if (!qty || qty<=0) return toast('Jumlah di setiap baris harus lebih dari 0!','err');
-    if (price!==null && (!Number.isFinite(price) || price<0)) return toast('Harga tidak valid!','err');
-    if (row.itemId==='__new__') {
-      const name = row.newName.trim();
-      const category = row.category;
-      const unit = row.unit;
-      if (!name || !category || !unit) return toast('Barang baru wajib punya nama, kategori, dan satuan!','err');
-      let idx = nextItems.findIndex(i => i.name.toLowerCase()===name.toLowerCase() && i.category.toLowerCase()===category.toLowerCase() && i.unit.toLowerCase()===unit.toLowerCase());
-      if (idx===-1) {
-        idx = nextItems.push({id:nextId(), name, category, stock:0, unit, minStock:10, price:0}) - 1;
+  try {
+    for (const row of draftIn.rows) {
+      const qty = toNum(row.qty, 0);
+      const price = row.price==='' ? null : Number(row.price);
+      const lot = String(row.lot||'').trim();
+      const exp = String(row.exp||'').trim();
+      if (!row.itemId) throw new Error('Semua baris wajib memilih barang!');
+      if (!qty || qty<=0) throw new Error('Jumlah di setiap baris harus lebih dari 0!');
+      if (price!==null && (!Number.isFinite(price) || price<0)) throw new Error('Harga tidak valid!');
+      if (exp && !lot) throw new Error('Tanggal kedaluwarsa diisi tapi No. Lot kosong. Isi No. Lot / Batch-nya.');
+      let idx;
+      if (row.itemId==='__new__') {
+        const name = row.newName.trim();
+        const category = row.category;
+        const unit = row.unit;
+        if (!name || !category || !unit) throw new Error('Barang baru wajib punya nama, kategori, dan satuan!');
+        const code = String(row.newCode||'').trim();
+        if (code && nextItems.some(i => (i.code||'').toLowerCase()===code.toLowerCase())) throw new Error(`Kode barang "${code}" sudah dipakai barang lain.`);
+        idx = nextItems.findIndex(i => i.name.toLowerCase()===name.toLowerCase() && i.category.toLowerCase()===category.toLowerCase() && i.unit.toLowerCase()===unit.toLowerCase());
+        if (idx===-1) {
+          idx = nextItems.push({id:nextId(), name, category, stock:0, unit, minStock:10, price:0,
+            code, brand:String(row.newBrand||'').trim(), permitNo:String(row.newPermit||'').trim(), lots:[]}) - 1;
+        }
+      } else {
+        idx = nextItems.findIndex(i => i.id===Number(row.itemId));
+        if (idx===-1) throw new Error('Ada barang yang tidak ditemukan di sistem!');
       }
-      const finalPrice = price===null ? (nextItems[idx].price||0) : price;
-      nextItems[idx].stock += qty;
-      nextItems[idx].price = finalPrice;
-      lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit, price:finalPrice});
-    } else {
-      const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
-      if (idx===-1) return toast('Ada barang yang tidak ditemukan di sistem!','err');
-      const finalPrice = price===null ? (nextItems[idx].price||0) : price;
-      nextItems[idx].stock += qty;
-      nextItems[idx].price = finalPrice;
-      lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit, price:finalPrice});
+      const it = nextItems[idx];
+      const finalPrice = price===null ? (it.price||0) : price;
+      addToLot(it, lot, exp, qty);
+      it.price = finalPrice;
+      const storedExp = lot ? ((it.lots.find(l=>l.lot.toLowerCase()===lot.toLowerCase())||{}).exp || exp) : '';
+      lines.push({itemId:it.id, name:it.name, category:it.category, qty, unit:it.unit, price:finalPrice, lot, exp:storedExp});
     }
+  } catch (err) {
+    return toast(err.message,'err');
   }
   items = nextItems;
   inRec.unshift({id:nextId(), date:draftIn.date||today(), supplier, note:draftIn.note.trim(), lines});
@@ -1201,6 +1659,9 @@ const pageOut = () => {
       </div>
       <div style="margin-bottom:8px"><button class="btn-cancel" type="button" onclick="openCsvGuide()">📘 Lihat Panduan CSV</button></div>
       <div style="margin-bottom:14px;font-size:12px"><a href="${escAttr(getCsvGuideUrl())}" target="_blank" rel="noopener">Buka panduan di tab baru</a></div>
+      <div style="font-size:12px;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.6">
+        🏷️ <strong>Lot otomatis (FEFO):</strong> stok diambil dari lot dengan tanggal kedaluwarsa terdekat. Lot yang sudah expired dilewati — pilih lotnya secara manual bila memang ingin mengeluarkannya (retur/pemusnahan).
+      </div>
       <div class="line-builder" id="out_rows">
         ${draftOut.rows.map((row, idx)=>`
           <div class="line-row" data-row-id="${row.rowId}">
@@ -1208,12 +1669,15 @@ const pageOut = () => {
               <div class="line-row-title">Barang ${idx+1}</div>
               <button class="line-remove" onclick="removeOutRow(${row.rowId})" ${draftOut.rows.length===1?'disabled':''}>Hapus Baris</button>
             </div>
-            <div class="line-grid-2">
+            <div class="line-grid-lot">
               <div class="field"><label>Pilih Barang *</label>
-                <select data-field="itemId">
+                <select data-field="itemId" onchange="outRowItemChange(${row.rowId},this.value)">
                   <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
-                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Stok: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(itemLabel(i))}</option>`).join('')}
                 </select>
+              </div>
+              <div class="field"><label>Lot / Batch</label>
+                <select data-field="lot">${lotSelectOptions(items.find(i=>String(i.id)===String(row.itemId)), row.lot, 'out')}</select>
               </div>
               <div class="field"><label>Jumlah *</label><input type="number" min="1" data-field="qty" value="${escAttr(row.qty)}" placeholder="0"></div>
             </div>
@@ -1236,6 +1700,7 @@ const pageOut = () => {
               <div class="batch-line-left">
                 <div class="batch-line-name">${esc(line.name)}</div>
                 <div class="batch-line-sub">${esc(line.category)}</div>
+                ${(line.alloc||[]).some(a=>a.lot)?`<div>${line.alloc.map(a=>lotChip(a,true,line.unit)).join('')}</div>`:''}
               </div>
               <div class="batch-line-right"><div class="badge-out">-${line.qty} ${esc(line.unit)}</div></div>
             </div>`).join('')}</div>
@@ -1250,7 +1715,7 @@ const submitOut = () => {
   const recipient = draftOut.recipientSelect==='__new__' ? draftOut.newRecipient.trim() : draftOut.recipientSelect.trim();
   if (draftOut.recipientSelect==='__new__' && !recipient) return toast('Nama tujuan / penerima wajib diisi!','err');
   if (!draftOut.rows.length) return toast('Tambahkan minimal 1 baris barang!','err');
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const lines = [];
   for (const row of draftOut.rows) {
     const qty = toNum(row.qty, 0);
@@ -1258,9 +1723,11 @@ const submitOut = () => {
     if (!qty || qty<=0) return toast('Jumlah di setiap baris harus lebih dari 0!','err');
     const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
     if (idx===-1) return toast('Ada barang yang tidak ditemukan di sistem!','err');
-    if (qty>nextItems[idx].stock) return toast(`Stok ${nextItems[idx].name} tidak cukup! Tersedia: ${nextItems[idx].stock} ${nextItems[idx].unit}`,'err');
-    nextItems[idx].stock -= qty;
-    lines.push({itemId:nextItems[idx].id, name:nextItems[idx].name, category:nextItems[idx].category, qty, unit:nextItems[idx].unit});
+    let alloc;
+    try { alloc = allocateOut(nextItems[idx], qty, row.lot||''); }
+    catch (err) { return toast(err.message,'err'); }
+    const it = nextItems[idx];
+    lines.push({itemId:it.id, name:it.name, category:it.category, qty, unit:it.unit, alloc});
   }
   items = nextItems;
   if (recipient && !recipients.map(r=>r.toLowerCase()).includes(recipient.toLowerCase())) recipients.push(recipient);
@@ -1298,7 +1765,7 @@ const pageOpname = () => {
       <div class="field"><label>Catatan Tambahan</label><textarea id="op_note" rows="3">${esc(draftOp.note)}</textarea></div>
       <div class="warn-box">
         <div class="warn-title">Catatan Opname</div>
-        <div style="font-size:12px;color:#713f12;line-height:1.6">Setiap baris akan mencatat stok sistem, stok fisik, dan selisih. Item yang tidak diinput tidak akan diubah.</div>
+        <div style="font-size:12px;color:#713f12;line-height:1.6">Setiap baris akan mencatat stok sistem, stok fisik, dan selisih. Item yang tidak diinput tidak akan diubah. Untuk barang ber-lot, hitung per lot agar sisa tiap lot dan tanggal kedaluwarsanya tetap akurat.</div>
       </div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <button class="btn-cancel" style="flex:1" onclick="downloadBulkTemplate('opname')">⬇️ Download Template CSV</button>
@@ -1313,12 +1780,15 @@ const pageOpname = () => {
               <div class="line-row-title">Item Opname ${idx+1}</div>
               <button class="line-remove" onclick="removeOpRow(${row.rowId})" ${draftOp.rows.length===1?'disabled':''}>Hapus Baris</button>
             </div>
-            <div class="line-grid-2">
+            <div class="line-grid-lot">
               <div class="field"><label>Pilih Barang *</label>
-                <select data-field="itemId">
+                <select data-field="itemId" onchange="opRowItemChange(${row.rowId},this.value)">
                   <option value="" ${row.itemId===''?'selected':''}>-- Pilih Barang --</option>
-                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(i.name)} (Sistem: ${i.stock} ${esc(i.unit)})</option>`).join('')}
+                  ${items.map(i=>`<option value="${i.id}" ${String(row.itemId)===String(i.id)?'selected':''}>${esc(itemLabel(i,'Sistem'))}</option>`).join('')}
                 </select>
+              </div>
+              <div class="field"><label>Hitung Untuk</label>
+                <select data-field="lot">${lotSelectOptions(items.find(i=>String(i.id)===String(row.itemId)), row.lot, 'op')}</select>
               </div>
               <div class="field"><label>Stok Fisik *</label><input type="number" min="0" data-field="actualStock" value="${escAttr(row.actualStock)}" placeholder="hasil hitung fisik"></div>
             </div>
@@ -1341,6 +1811,7 @@ const pageOpname = () => {
               <div class="batch-line-left">
                 <div class="batch-line-name">${esc(line.itemName)}</div>
                 <div class="batch-line-sub">${esc(line.category)} • Sistem ${line.systemStock} ${esc(line.unit)} • Fisik ${line.actualStock} ${esc(line.unit)}</div>
+                ${line.lotMode==='lot'?`<div>${lotChip(line,false)}</div>`:line.lotMode==='none'?'<div><span class="lot-chip">Tanpa lot</span></div>':''}
               </div>
               <div class="batch-line-right"><div class="badge-opname ${diffClass(line.diff)}">${fmtDiff(line.diff)} ${esc(line.unit)}</div></div>
             </div>`).join('')}</div>
@@ -1355,27 +1826,36 @@ const submitOpname = () => {
   if (!draftOp.reason.trim()) return toast('Alasan opname wajib diisi!','err');
   if (!draftOp.rows.length) return toast('Tambahkan minimal 1 item opname!','err');
   const seen = new Set();
-  let nextItems = items.map(i => ({...i}));
+  let nextItems = items.map(i => ({...i, lots:(i.lots||[]).map(l=>({...l}))}));
   const lines = [];
   for (const row of draftOp.rows) {
-    const actualStock = Number(row.actualStock);
+    const actualStock = row.actualStock==='' ? NaN : Number(row.actualStock);
+    const lotSel = row.lot || '';
     if (!row.itemId) return toast('Semua baris opname wajib memilih barang!','err');
-    if (seen.has(String(row.itemId))) return toast('Satu barang tidak boleh diinput dua kali dalam sesi opname!','err');
-    seen.add(String(row.itemId));
+    const key = `${row.itemId}|${lotSel}`;
+    if (seen.has(key)) return toast('Satu barang/lot tidak boleh diinput dua kali dalam sesi opname!','err');
+    if (lotSel==='' && [...seen].some(k=>k.startsWith(`${row.itemId}|`)) || lotSel!=='' && seen.has(`${row.itemId}|`))
+      return toast('Untuk satu barang, pilih opname "Total barang" atau per lot — jangan dicampur dalam satu sesi.','err');
+    seen.add(key);
     if (!Number.isFinite(actualStock) || actualStock<0) return toast('Stok fisik harus 0 atau lebih!','err');
-    const current = items.find(i => i.id===Number(row.itemId));
     const idx = nextItems.findIndex(i => i.id===Number(row.itemId));
-    if (!current || idx===-1) return toast('Ada barang opname yang tidak ditemukan!','err');
-    const diff = actualStock - current.stock;
-    nextItems[idx].stock = actualStock;
+    if (idx===-1) return toast('Ada barang opname yang tidak ditemukan!','err');
+    const it = nextItems[idx];
+    const lotObj = (it.lots||[]).find(l=>l.lot===lotSel);
+    let systemStock;
+    try { systemStock = applyOpname(it, actualStock, lotSel); }
+    catch (err) { return toast(err.message,'err'); }
     lines.push({
-      itemId: current.id,
-      itemName: current.name,
-      category: current.category,
-      unit: current.unit,
-      systemStock: current.stock,
+      itemId: it.id,
+      itemName: it.name,
+      category: it.category,
+      unit: it.unit,
+      systemStock,
       actualStock,
-      diff
+      diff: actualStock - systemStock,
+      lot: lotSel===NO_LOT ? '' : lotSel,
+      lotMode: lotSel===NO_LOT ? 'none' : lotSel ? 'lot' : 'total',
+      exp: lotObj ? lotObj.exp : ''
     });
   }
   items = nextItems;
@@ -1384,11 +1864,13 @@ const submitOpname = () => {
     id: nextId(),
     ts: new Date().toISOString(),
     type: 'opname',
+    itemId: line.itemId,
     itemName: line.itemName,
     systemStock: line.systemStock,
     actualStock: line.actualStock,
     diff: line.diff,
     unit: line.unit,
+    lot: line.lot,
     reason: draftOp.reason.trim(),
     note: draftOp.note.trim()
   }));
@@ -1406,7 +1888,7 @@ const pageSummary = () => {
   const totalIn  = inLines.reduce((s,r)=>s+r.qty,0);
   const totalOut = outLines.reduce((s,r)=>s+r.qty,0);
   const totalAdj = opLines.reduce((s,r)=>s+r.diff,0);
-  const fItems   = items.filter(i=>fuzzy(i.name,searchSummary)||fuzzy(i.category,searchSummary));
+  const fItems   = items.filter(i=>fuzzy(i.name,searchSummary)||fuzzy(i.category,searchSummary)||fuzzy(i.code||'',searchSummary)||fuzzy(i.brand||'',searchSummary));
   const fTx      = [
     ...inLines.map(r=>({...r,type:'in'})),
     ...outLines.map(r=>({...r,type:'out'})),
@@ -1429,7 +1911,7 @@ const pageSummary = () => {
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input id="summarySearch" value="${escAttr(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, supplier, penerima, alasan opname...">
+    <input id="summarySearch" value="${escAttr(searchSummary)}" oninput="searchSummary=this.value;renderMain()" placeholder="Fuzzy search nama/kode barang, merek, kategori, supplier, penerima, alasan opname...">
     ${searchSummary?`<button class="search-clear" onclick="searchSummary='';render()">✕</button>`:''}
   </div>
   <div class="panel">
@@ -1443,7 +1925,7 @@ const pageSummary = () => {
         const tOut=outLines.filter(r=>r.itemId===it.id).reduce((s,r)=>s+r.qty,0);
         const isLow=it.stock<=it.minStock;
         return`<tr>
-          <td><strong>${hl(it.name,searchSummary)}</strong></td>
+          <td><strong>${it.code?`<span class="code-tag">${hl(it.code,searchSummary)}</span>`:''}${hl(it.name,searchSummary)}</strong>${it.brand?`<div class="item-sub">${hl(it.brand,searchSummary)}</div>`:''}</td>
           <td style="color:#64748b">${hl(it.category,searchSummary)}</td>
           <td style="color:#22c55e;font-weight:700">+${tIn}</td>
           <td style="color:#f59e0b;font-weight:700">-${tOut}</td>
@@ -1477,33 +1959,207 @@ const pageSummary = () => {
   </div>`;
 };
 
+// ── KARTU STOK ─────────────────────────────────────────────────
+// Mutasi satu barang (opsional: satu lot). lotFilter: '' = semua, NO_LOT = stok tanpa lot, atau kode lot.
+const buildMovements = (it, lotFilter) => {
+  const mv = [];
+  const pick = l => !lotFilter ? true : lotFilter===NO_LOT ? !l : l===lotFilter;
+  getInLines().filter(r=>r.itemId===it.id && pick(r.lot)).forEach(r => mv.push({
+    date:r.date, sort:r.batchId, ref:`IN-${r.batchId}`, type:'Masuk', desc:r.supplier||'', note:r.note,
+    lot:r.lot, exp:r.exp, qtyIn:r.qty, qtyOut:0
+  }));
+  getOutLines().filter(r=>r.itemId===it.id).forEach(r => {
+    const parts = (r.alloc||[]).filter(a=>pick(a.lot));
+    const qty = parts.reduce((s,a)=>s+a.qty,0);
+    if (!qty) return;
+    mv.push({date:r.date, sort:r.batchId, ref:`OUT-${r.batchId}`, type:'Keluar', desc:r.recipient||'', note:r.note,
+      lot:parts.map(a=>a.lot||'(tanpa lot)').join(', '), exp:'', qtyIn:0, qtyOut:qty});
+  });
+  getOpLines().filter(r=>r.itemId===it.id).forEach(r => {
+    const affects = !lotFilter ? true : lotFilter===NO_LOT ? r.lotMode!=='lot' : (r.lotMode==='lot' && r.lot===lotFilter);
+    if (!affects || !r.diff) return;
+    mv.push({date:r.date, sort:r.batchId, ref:`OP-${r.batchId}`, type:'Opname', desc:r.reason||'', note:r.note,
+      lot: r.lotMode==='lot' ? r.lot : r.lotMode==='none' ? '(tanpa lot)' : '', exp:r.exp||'', qtyIn:Math.max(0,r.diff), qtyOut:Math.max(0,-r.diff)});
+  });
+  // Koreksi manual stok lewat Edit Barang (stok tanpa lot)
+  if (!lotFilter || lotFilter===NO_LOT) {
+    actLog.filter(a=>a.type==='edit').forEach(a => {
+      let before = a.stockBefore, after = a.stockAfter;
+      if (a.itemId!==undefined && a.itemId!==it.id) return;
+      if (a.itemId===undefined) {
+        // Data lama: cocokkan dengan nama dan baca perubahan "Stok: x → y"
+        if (a.itemName!==it.name) return;
+        const m = (a.changes||[]).map(c=>/^Stok: (-?[\d.]+) → (-?[\d.]+)$/.exec(c)).find(Boolean);
+        if (!m) return;
+        before = Number(m[1]); after = Number(m[2]);
+      }
+      if (before===undefined || after===undefined || before===after) return;
+      const d = after - before;
+      mv.push({date:localISO(new Date(a.ts)), sort:toNum(a.id,0), ref:'EDIT', type:'Koreksi', desc:a.reason||'', note:a.note,
+        lot:'', exp:'', qtyIn:Math.max(0,d), qtyOut:Math.max(0,-d)});
+    });
+  }
+  return mv.sort((a,b)=>a.date.localeCompare(b.date) || a.sort-b.sort);
+};
+
+const kartuData = () => {
+  const it = items.find(i=>String(i.id)===String(kartu.itemId));
+  if (!it) return null;
+  const lotFilter = kartu.lot;
+  const current = !lotFilter ? it.stock : lotFilter===NO_LOT ? unlotted(it) : ((it.lots||[]).find(l=>l.lot===lotFilter)||{qty:0}).qty;
+  const all = buildMovements(it, lotFilter);
+  const net = all.reduce((s,m)=>s+m.qtyIn-m.qtyOut,0);
+  let bal = current - net; // saldo sebelum transaksi pertama tercatat
+  const from = kartu.from, to = kartu.to;
+  all.filter(m => from && m.date < from).forEach(m => { bal += m.qtyIn - m.qtyOut; });
+  const opening = bal;
+  const rows = all.filter(m => (!from || m.date>=from) && (!to || m.date<=to)).map(m => {
+    bal += m.qtyIn - m.qtyOut;
+    return {...m, balance: bal};
+  });
+  const totIn = rows.reduce((s,r)=>s+r.qtyIn,0), totOut = rows.reduce((s,r)=>s+r.qtyOut,0);
+  const lotObj = lotFilter && lotFilter!==NO_LOT ? (it.lots||[]).find(l=>l.lot===lotFilter) : null;
+  const lotExpFromHist = lotFilter && lotFilter!==NO_LOT && !lotObj ? (all.find(m=>m.exp)||{}).exp : '';
+  return {it, rows, opening, closing: opening + totIn - totOut, totIn, totOut, lotObj, lotExp: lotObj ? lotObj.exp : lotExpFromHist};
+};
+
+const kartuLotOptions = it => {
+  if (!it) return '<option value="">Semua lot</option>';
+  const known = new Map();
+  (it.lots||[]).forEach(l => known.set(l.lot, l.exp));
+  getInLines().filter(r=>r.itemId===it.id && r.lot).forEach(r => { if (!known.has(r.lot)) known.set(r.lot, r.exp); });
+  const lots = sortLots([...known.entries()].map(([lot,exp])=>({lot,exp})));
+  return `<option value="">Semua lot (total barang)</option>`
+    + lots.map(l=>`<option value="${escAttr(l.lot)}" ${kartu.lot===l.lot?'selected':''}>${esc(lotText(l))}${(it.lots||[]).some(x=>x.lot===l.lot)?'':' · habis'}</option>`).join('')
+    + `<option value="${NO_LOT}" ${kartu.lot===NO_LOT?'selected':''}>Tanpa lot</option>`;
+};
+
+const kartuSet = (key, val) => {
+  kartu[key] = val;
+  if (key==='itemId') kartu.lot = '';
+  renderMain();
+};
+const openKartu = id => { kartu.itemId = String(id); kartu.lot = ''; go('kartu'); };
+const kartuPeriodLabel = () => kartu.from || kartu.to ? `${kartu.from?fmt(kartu.from):'awal'} s/d ${kartu.to?fmt(kartu.to):fmt(today())}` : `Semua periode s/d ${fmt(today())}`;
+const kartuLotLabel = d => !kartu.lot ? 'Semua lot' : kartu.lot===NO_LOT ? 'Tanpa lot' : `${kartu.lot}${d.lotExp?` (ED ${fmt(d.lotExp)})`:''}`;
+
+const pageKartu = () => {
+  const d = kartuData();
+  const it = d && d.it;
+  return `
+  <div class="print-only" style="margin-bottom:10px">
+    ${settings.companyName?`<div style="font-size:15px;font-weight:800">${esc(settings.companyName)}</div>`:''}
+    <div style="font-size:18px;font-weight:800;margin-top:2px">KARTU STOK</div>
+    <div style="font-size:11px;color:#64748b">Dicetak ${new Date().toLocaleString('id-ID')}</div>
+  </div>
+  <div class="no-print">
+    <div class="page-title">📒 Kartu Stok</div>
+    <div class="page-sub">Riwayat mutasi per barang dengan saldo berjalan — bisa dicetak atau diexport ke Excel</div>
+  </div>
+  <div class="panel no-print"><div class="panel-body">
+    <div class="toolbar">
+      <div class="field grow"><label>Barang</label>
+        <select onchange="kartuSet('itemId',this.value)">
+          <option value="">-- Pilih Barang --</option>
+          ${items.map(i=>`<option value="${i.id}" ${String(kartu.itemId)===String(i.id)?'selected':''}>${esc(itemLabel(i))}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field"><label>Lot / Batch</label><select onchange="kartuSet('lot',this.value)" ${it?'':'disabled'}>${kartuLotOptions(it)}</select></div>
+      <div class="field"><label>Dari Tanggal</label><input type="date" value="${escAttr(kartu.from)}" onchange="kartuSet('from',this.value)"></div>
+      <div class="field"><label>Sampai Tanggal</label><input type="date" value="${escAttr(kartu.to)}" onchange="kartuSet('to',this.value)"></div>
+      <button class="btn-cancel" onclick="kartu.from='';kartu.to='';renderMain()">Semua Periode</button>
+      <button class="btn-cancel" ${it?'':'disabled'} onclick="window.print()">🖨️ Cetak</button>
+      <button class="btn-save" ${it?'':'disabled'} onclick="exportKartuXlsx()">⬇️ Export Excel</button>
+    </div>
+  </div></div>
+  ${!it?`<div class="panel"><div class="empty">${items.length?'Pilih barang untuk menampilkan kartu stok.':'Belum ada barang.'}</div></div>`:`
+  <div class="panel"><div class="panel-body">
+    <div class="info-grid">
+      <div><div class="k">Nama Barang</div><div class="v">${esc(it.name)}</div></div>
+      <div><div class="k">Kode Barang</div><div class="v">${esc(it.code||'–')}</div></div>
+      <div><div class="k">Merek</div><div class="v">${esc(it.brand||'–')}</div></div>
+      <div><div class="k">No. Izin Edar</div><div class="v">${esc(it.permitNo||'–')}</div></div>
+      <div><div class="k">Kategori / Satuan</div><div class="v">${esc(it.category)} / ${esc(it.unit)}</div></div>
+      <div><div class="k">Lot</div><div class="v">${esc(kartuLotLabel(d))}</div></div>
+      <div><div class="k">Periode</div><div class="v">${esc(kartuPeriodLabel())}</div></div>
+      <div><div class="k">Stok Saat Ini</div><div class="v">${it.stock} ${esc(it.unit)}</div></div>
+    </div>
+  </div></div>
+  <div class="panel">
+    <table class="ks-table">
+      <thead><tr><th>Tanggal</th><th>No. Transaksi</th><th>Jenis</th><th>Keterangan</th><th>Lot</th><th class="num">Masuk</th><th class="num">Keluar</th><th class="num">Saldo</th></tr></thead>
+      <tbody>
+        <tr class="ks-open"><td>${kartu.from?fmt(kartu.from):'–'}</td><td></td><td colspan="3">Saldo awal</td><td class="num"></td><td class="num"></td><td class="num">${d.opening}</td></tr>
+        ${d.rows.length===0?`<tr><td colspan="8" class="empty" style="padding:24px 0">Tidak ada mutasi pada periode ini.</td></tr>`:
+        d.rows.map(r=>`<tr>
+          <td style="white-space:nowrap">${fmt(r.date)}</td>
+          <td style="font-size:12px;color:#64748b">${esc(r.ref)}</td>
+          <td><span class="${r.type==='Masuk'?'badge-in':r.type==='Keluar'?'badge-out':r.type==='Opname'?'badge-opname':'badge-edit'}">${r.type}</span></td>
+          <td>${esc(r.desc)}${r.note?`<div class="item-sub">${esc(r.note)}</div>`:''}</td>
+          <td style="font-size:12px">${esc(r.lot||'')}${r.exp&&r.type==='Masuk'?`<div class="item-sub">ED ${fmt(r.exp)}</div>`:''}</td>
+          <td class="num" style="color:#16a34a;font-weight:700">${r.qtyIn||''}</td>
+          <td class="num" style="color:#ea580c;font-weight:700">${r.qtyOut||''}</td>
+          <td class="num" style="font-weight:800">${r.balance}</td>
+        </tr>`).join('')}
+        <tr class="ks-total"><td colspan="5">Total periode · Saldo akhir</td><td class="num">${d.totIn}</td><td class="num">${d.totOut}</td><td class="num">${d.closing} ${esc(it.unit)}</td></tr>
+      </tbody>
+    </table>
+  </div>`}`;
+};
+
+const exportKartuXlsx = () => {
+  const d = kartuData();
+  if (!d) return toast('Pilih barang dulu.','warn');
+  const it = d.it;
+  const B = v => ({v, bold:true});
+  const rows = [
+    [B(`KARTU STOK${settings.companyName?` — ${settings.companyName}`:''}`)],
+    [],
+    [B('Nama Barang'), it.name, '', B('Kode Barang'), it.code||''],
+    [B('Merek'), it.brand||'', '', B('No. Izin Edar'), it.permitNo||''],
+    [B('Kategori'), it.category, '', B('Satuan'), it.unit],
+    [B('Lot'), kartuLotLabel(d), '', B('Periode'), kartuPeriodLabel()],
+    [],
+    ['Tanggal','No. Transaksi','Jenis','Keterangan','Catatan','Lot','Masuk','Keluar','Saldo'].map(B),
+    [kartu.from||'', '', 'Saldo awal', '', '', '', '', '', d.opening],
+    ...d.rows.map(r => [r.date, r.ref, r.type, r.desc, r.note||'', r.lot||'', r.qtyIn||'', r.qtyOut||'', r.balance]),
+    [B('Total'), '', '', '', '', '', B(d.totIn), B(d.totOut), B(d.closing)],
+  ];
+  const safe = s => String(s||'').replace(/[^\w\-]+/g,'_').slice(0,40);
+  downloadXlsx(`kartu_stok_${safe(it.code||it.name)}_${today()}.xlsx`, 'Kartu Stok', rows, [14,18,12,28,24,16,10,10,10]);
+  toast('Kartu stok diexport ke Excel.');
+};
+
 // ── KELOLA BARANG ──────────────────────────────────────────────
 const pageManage = () => {
-  const fItems = items.filter(i=>fuzzy(i.name,searchManage)||fuzzy(i.category,searchManage)||fuzzy(i.unit,searchManage));
+  const fItems = items.filter(i=>[i.name,i.category,i.unit,i.code,i.brand,i.permitNo].some(v=>fuzzy(v||'',searchManage)));
   return `
   <div class="page-title">⚙️ Kelola Barang</div>
   <div class="page-sub">Edit atau hapus data barang. Setiap perubahan dicatat di audit trail.</div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input id="manageSearch" value="${escAttr(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama barang, kategori, satuan...">
+    <input id="manageSearch" value="${escAttr(searchManage)}" oninput="searchManage=this.value;renderMain()" placeholder="Fuzzy search nama, kode, merek, izin edar, kategori, satuan...">
     ${searchManage?`<button class="search-clear" onclick="searchManage='';render()">✕</button>`:''}
   </div>
   <div class="panel">
     <div class="panel-head">📦 Daftar Barang (${fItems.length}${searchManage?` dari ${items.length}`:''})</div>
     ${fItems.length===0?`<div class="empty">${searchManage?`Tidak ada barang cocok "${esc(searchManage)}"`:'Belum ada barang. Tambahkan melalui halaman Barang Masuk.'}</div>`:`
     <table>
-      <thead><tr><th>Nama Barang</th><th>Kategori</th><th>Stok</th><th>Satuan</th><th>Min Stok</th><th>Status</th><th>Aksi</th></tr></thead>
+      <thead><tr><th>Kode</th><th>Nama Barang</th><th>Izin Edar</th><th>Kategori</th><th>Stok</th><th>Min</th><th>Lot</th><th>Status</th><th>Aksi</th></tr></thead>
       <tbody>${fItems.map(it=>{const isLow=it.stock<=it.minStock;return`
         <tr>
-          <td><strong>${hl(it.name,searchManage)}</strong></td>
+          <td>${it.code?`<span class="code-tag">${hl(it.code,searchManage)}</span>`:'<span style="color:#cbd5e1">–</span>'}</td>
+          <td><strong>${hl(it.name,searchManage)}</strong>${it.brand?`<div class="item-sub">${hl(it.brand,searchManage)}</div>`:''}</td>
+          <td style="font-size:12px">${it.permitNo?hl(it.permitNo,searchManage):'<span style="color:#cbd5e1">–</span>'}</td>
           <td style="color:#64748b">${hl(it.category,searchManage)}</td>
-          <td style="font-weight:700;color:${isLow?'#ef4444':'#22c55e'}">${it.stock}</td>
-          <td style="color:#64748b">${hl(it.unit,searchManage)}</td>
+          <td style="font-weight:700;color:${isLow?'#ef4444':'#22c55e'};white-space:nowrap">${it.stock} <span style="font-size:11px;font-weight:400;color:#94a3b8">${hl(it.unit,searchManage)}</span></td>
           <td style="color:#64748b">${it.minStock}</td>
+          <td style="max-width:260px">${(it.lots||[]).length?sortLots(it.lots).map(l=>lotChip(l,true,it.unit)).join(''):'<span style="color:#cbd5e1">–</span>'}${(it.lots||[]).length&&unlotted(it)>0?`<span class="lot-chip">Tanpa lot · ${unlotted(it)} ${esc(it.unit)}</span>`:''}</td>
           <td><span class="badge ${isLow?'badge-low':'badge-ok'}">${isLow?'⚠️ Menipis':'✅ Aman'}</span></td>
-          <td><div style="display:flex;gap:8px">
+          <td><div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn-sm btn-edit" onclick="openEdit(${it.id})">✏️ Edit</button>
-            <button class="btn-sm btn-del" onclick="openDel(${it.id})">🗑️ Hapus</button>
+            <button class="btn-sm" style="background:#ecfeff;color:#0e7490" onclick="openKartu(${it.id})">📒 Kartu</button>
+            <button class="btn-sm btn-del" onclick="openDel(${it.id})">🗑️</button>
           </div></td>
         </tr>`}).join('')}</tbody>
     </table>`}
@@ -1520,7 +2176,7 @@ const pageManage = () => {
         </div>
         ${a.type==='edit'?(a.changes||[]).map(ch=>`<span class="change-chip">🔄 ${esc(ch)}</span>`).join(''):''}
         ${a.type==='delete'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">Stok saat dihapus: <strong>${a.stockAtDelete} ${esc(a.unit)}</strong></div>`:''}
-        ${a.type==='opname'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">Stok sistem <strong>${a.systemStock} ${esc(a.unit)}</strong> disesuaikan ke stok fisik <strong>${a.actualStock} ${esc(a.unit)}</strong> dengan selisih <strong class="${diffClass(a.diff)}">${fmtDiff(a.diff)} ${esc(a.unit)}</strong></div>`:''}
+        ${a.type==='opname'?`<div style="font-size:12px;color:#64748b;margin-bottom:4px">${a.lot?`Lot <strong>${esc(a.lot)}</strong>: s`:'S'}tok sistem <strong>${a.systemStock} ${esc(a.unit)}</strong> disesuaikan ke stok fisik <strong>${a.actualStock} ${esc(a.unit)}</strong> dengan selisih <strong class="${diffClass(a.diff)}">${fmtDiff(a.diff)} ${esc(a.unit)}</strong></div>`:''}
         <div style="font-size:12px;color:#1e40af;font-weight:600;margin-top:6px">📋 Alasan: ${esc(a.reason)}</div>
         ${a.note?`<div class="hist-note">📝 ${esc(a.note)}</div>`:''}
       </div>`).join('')}
@@ -1531,15 +2187,34 @@ const pageManage = () => {
 // ── PENGATURAN ─────────────────────────────────────────────────
 const pageSettings = () => `
   <div class="page-title">🛠️ Pengaturan</div>
-  <div class="page-sub">Kelola master data kategori, satuan, dan tujuan / penerima sesuai kebutuhan bisnis kamu</div>
+  <div class="page-sub">Pengaturan umum serta master data kategori, satuan, dan tujuan / penerima</div>
   <div class="panel" style="margin-bottom:16px"><div class="panel-body" style="padding:12px 18px;background:#fefce8;border-radius:14px;color:#854d0e;font-size:13px">
     ⚠️ <strong>Catatan:</strong> Master data yang sedang dipakai di transaksi aktif tidak bisa dihapus.
+  </div></div>
+  <div class="panel"><div class="panel-head">⚙️ Pengaturan Umum</div><div class="panel-body">
+    <div class="settings-grid">
+      <div class="field"><label>Nama Perusahaan (untuk cetak)</label><input id="s_company" value="${escAttr(settings.companyName)}" placeholder="contoh: PT Maju Medika"></div>
+      <div class="field"><label>Peringatan ED (hari sebelum)</label><input type="number" min="1" id="s_expdays" value="${settings.expWarnDays}"></div>
+      <div class="field"><label>Ingatkan Backup Setiap (hari)</label><input type="number" min="0" id="s_backupdays" value="${settings.backupRemindDays}"><div class="item-sub">Isi 0 untuk mematikan pengingat</div></div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Simpan Pengaturan</button>
+    <div style="font-size:12px;color:#64748b;margin-top:12px">💾 ${lastBackupAt()?`Backup terakhir: ${new Date(lastBackupAt()).toLocaleString('id-ID')}`:'Belum pernah backup.'} Backup dibuat lewat tombol Export JSON / Export CSV di menu samping.</div>
   </div></div>
   <div class="three-col">
     ${masterList('Kategori Barang','📁',cats,'cat','Spare Part, Bahan Baku...')}
     ${masterList('Satuan Barang','📏',units,'unit','unit, kg, pcs, karton...')}
     ${masterList('Tujuan / Penerima','👤',getRecipientList(),'recipient','Produksi, Gudang Cabang, Budi...')}
   </div>`;
+
+const saveSettings = () => {
+  const company = document.getElementById('s_company').value.trim();
+  const expDays = Number(document.getElementById('s_expdays').value);
+  const bDays = Number(document.getElementById('s_backupdays').value);
+  if (!Number.isInteger(expDays) || expDays<1) return toast('Peringatan ED minimal 1 hari!','err');
+  if (!Number.isInteger(bDays) || bDays<0) return toast('Hari pengingat backup tidak valid!','err');
+  settings = {...settings, companyName:company, expWarnDays:expDays, backupRemindDays:bDays};
+  save(); toast('Pengaturan disimpan.'); render();
+};
 
 const masterList = (title, icon, arr, type, ph) => `
   <div class="panel"><div class="panel-head">${icon} ${title}</div><div class="panel-body">
@@ -1590,6 +2265,9 @@ const openEdit = id => {
   if (!it) return;
   editId = id;
   document.getElementById('e_name').value    = it.name;
+  document.getElementById('e_code').value    = it.code||'';
+  document.getElementById('e_brand').value   = it.brand||'';
+  document.getElementById('e_permit').value  = it.permitNo||'';
   document.getElementById('e_stock').value   = it.stock;
   document.getElementById('e_minstock').value= it.minStock;
   document.getElementById('e_price').value   = it.price||'';
@@ -1602,11 +2280,22 @@ const openEdit = id => {
   unitSel.innerHTML = units.map(u=>`<option ${u===it.unit?'selected':''}>${esc(u)}</option>`).join('');
   if (!cats.includes(it.category)) catSel.innerHTML += `<option selected>${esc(it.category)}</option>`;
   if (!units.includes(it.unit)) unitSel.innerHTML += `<option selected>${esc(it.unit)}</option>`;
+  const lots = sortLots(it.lots||[]);
+  document.getElementById('e_lots_wrap').style.display = lots.length ? 'block' : 'none';
+  document.getElementById('e_lots').innerHTML = lots.map(l=>`
+    <div class="lot-edit-row" data-lot="${escAttr(l.lot)}">
+      <span>🏷️ <strong>${esc(l.lot)}</strong></span>
+      <input type="date" value="${escAttr(l.exp)}">
+      <span style="color:#64748b">${l.qty} ${esc(it.unit)}</span>
+    </div>`).join('');
   document.getElementById('editModal').style.display='flex';
 };
 const closeEdit = () => { document.getElementById('editModal').style.display='none'; editId=null; };
 const saveEdit  = () => {
   const name    = document.getElementById('e_name').value.trim();
+  const code    = document.getElementById('e_code').value.trim();
+  const brand   = document.getElementById('e_brand').value.trim();
+  const permitNo= document.getElementById('e_permit').value.trim();
   const cat     = document.getElementById('e_cat').value;
   const unit    = document.getElementById('e_unit').value;
   const stock   = Number(document.getElementById('e_stock').value);
@@ -1619,18 +2308,30 @@ const saveEdit  = () => {
   if (Number.isNaN(stock) || stock<0) return toast('Stok tidak boleh negatif!','err');
   if (Number.isNaN(minStock) || minStock<0) return toast('Min stok tidak boleh negatif!','err');
   if (price<0) return toast('Harga tidak boleh negatif!','err');
-  if (!reason) return toast('Alasan perubahan wajib diisi!','err');
   const orig = items.find(i=>i.id===editId);
+  if (code && items.some(i=>i.id!==editId && (i.code||'').toLowerCase()===code.toLowerCase())) return toast(`Kode barang "${code}" sudah dipakai barang lain!`,'err');
+  if (stock < sumLots(orig)) return toast(`Stok tidak boleh lebih kecil dari total lot (${sumLots(orig)}). Koreksi jumlah per lot lewat Stok Opname.`,'err');
+  if (!reason) return toast('Alasan perubahan wajib diisi!','err');
   const changes = [];
   if (orig.name!==name)         changes.push(`Nama: "${orig.name}" → "${name}"`);
+  if ((orig.code||'')!==code)   changes.push(`Kode: "${orig.code||'-'}" → "${code||'-'}"`);
+  if ((orig.brand||'')!==brand) changes.push(`Merek: "${orig.brand||'-'}" → "${brand||'-'}"`);
+  if ((orig.permitNo||'')!==permitNo) changes.push(`Izin Edar: "${orig.permitNo||'-'}" → "${permitNo||'-'}"`);
   if (orig.category!==cat)      changes.push(`Kategori: "${orig.category}" → "${cat}"`);
   if (orig.stock!==stock)       changes.push(`Stok: ${orig.stock} → ${stock}`);
   if (orig.unit!==unit)         changes.push(`Satuan: "${orig.unit}" → "${unit}"`);
   if (orig.minStock!==minStock) changes.push(`Min Stok: ${orig.minStock} → ${minStock}`);
   if ((orig.price||0)!==price)  changes.push(`Harga: ${fmtRp(orig.price||0)} → ${fmtRp(price)}`);
+  const newLots = (orig.lots||[]).map(l=>({...l}));
+  document.querySelectorAll('#e_lots .lot-edit-row').forEach(row => {
+    const l = newLots.find(x=>x.lot===row.dataset.lot);
+    const v = row.querySelector('input').value;
+    if (l && l.exp!==v) { changes.push(`ED Lot ${l.lot}: ${l.exp?fmt(l.exp):'-'} → ${v?fmt(v):'-'}`); l.exp = v; }
+  });
   if (!changes.length) { closeEdit(); return toast('Tidak ada perubahan.','warn'); }
-  items = items.map(i=>i.id===editId?{...i,name,category:cat,unit,stock,minStock,price}:i);
-  actLog.unshift({id:Date.now(), ts:new Date().toISOString(), type:'edit', itemName:orig.name, changes, reason, note});
+  items = items.map(i=>i.id===editId?{...i,name,code,brand,permitNo,category:cat,unit,stock,minStock,price,lots:newLots}:i);
+  actLog.unshift({id:nextId(), ts:new Date().toISOString(), type:'edit', itemId:orig.id, itemName:orig.name, changes, reason, note,
+    ...(orig.stock!==stock ? {stockBefore:orig.stock, stockAfter:stock} : {})});
   save(); closeEdit(); toast('Barang berhasil diperbarui!'); render();
 };
 
@@ -1647,7 +2348,7 @@ const confirmDel = () => {
   const note = document.getElementById('del_note').value.trim();
   if (!note) return toast('Keterangan hapus wajib diisi!','err');
   const it = items.find(i=>i.id===delId);
-  actLog.unshift({id:Date.now(), ts:new Date().toISOString(), type:'delete', itemName:it.name, stockAtDelete:it.stock, unit:it.unit, reason:note});
+  actLog.unshift({id:nextId(), ts:new Date().toISOString(), type:'delete', itemId:it.id, itemName:it.name, stockAtDelete:it.stock, unit:it.unit, reason:note});
   items = items.filter(i=>i.id!==delId);
   save(); closeDel(); toast(`Barang "${it.name}" berhasil dihapus.`); render();
 };
@@ -1655,14 +2356,18 @@ const confirmDel = () => {
 // ── Export / Import ────────────────────────────────────────────
 const exportData = (format='csv') => {
   if (format==='json') {
-    const data = {items,inRec,outRec,opRec,actLog,cats,units,recipients,exportedAt:new Date().toISOString()};
+    const data = {app:'StockPro', version:2, items,inRec,outRec,opRec,actLog,cats,units,recipients,settings,exportedAt:new Date().toISOString()};
     downloadFile(JSON.stringify(data,null,2), 'application/json', `stockpro_backup_${today()}.json`);
+    markBackup();
     return toast('Data berhasil diexport ke JSON!');
   }
   const csv = buildCsv(buildCsvRows());
   downloadFile(csv, 'text/csv;charset=utf-8', `stockpro_backup_${today()}.csv`);
+  markBackup();
   toast('Data berhasil diexport ke CSV!');
 };
+const syncAllDrafts = () => { syncDraftInFromDom(); syncDraftOutFromDom(); syncDraftOpFromDom(); };
+const markBackup = () => { ls(LS.lastBackup, new Date().toISOString()); ls(LS.backupSnooze, null); syncAllDrafts(); render(); };
 const importData = e => {
   const file = e.target.files[0]; if (!file) return;
   const r = new FileReader();
@@ -1694,8 +2399,8 @@ const renderMain = () => {
     selectionStart: typeof active.selectionStart==='number' ? active.selectionStart : null,
     selectionEnd: typeof active.selectionEnd==='number' ? active.selectionEnd : null
   } : null;
-  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, manage:pageManage, settings:pageSettings };
-  document.getElementById('main').innerHTML = (pages[page]||pageDashboard)();
+  const pages = { dashboard:pageDashboard, in:pageIn, out:pageOut, opname:pageOpname, summary:pageSummary, kartu:pageKartu, manage:pageManage, settings:pageSettings };
+  document.getElementById('main').innerHTML = backupBanner() + (pages[page]||pageDashboard)();
   if (preserveFocus && preserveFocus.id) {
     const next = document.getElementById(preserveFocus.id);
     if (next) {

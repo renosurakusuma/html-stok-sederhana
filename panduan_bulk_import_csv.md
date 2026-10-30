@@ -9,6 +9,10 @@ Panduan ini menjelaskan cara memakai template CSV untuk `Barang Masuk`, `Barang 
 - Satu `kode_transaksi` atau `kode_sesi` yang sama berarti masuk dalam satu batch yang sama
 - Jangan ubah nama header kolom
 - Angka jumlah, harga, dan stok harus berupa angka tanpa teks tambahan
+- Tanggal boleh `YYYY-MM-DD` (contoh `2026-12-31`) atau `DD/MM/YYYY` (contoh `31/12/2026`)
+- CSV dengan pemisah titik koma (`;`) dari Excel berbahasa Indonesia juga diterima
+- Kolom `kode_barang` dipakai lebih dulu untuk mencari barang; jika kosong, dicari lewat nama barang
+- Kolom `lot` dan `tanggal_kedaluwarsa` boleh dikosongkan untuk barang yang tidak memakai lot
 
 ## Barang Masuk
 
@@ -20,10 +24,15 @@ Template `Barang Masuk` memakai kolom berikut:
 | `tanggal` | Ya | Format `YYYY-MM-DD` |
 | `supplier` | Tidak | Nama supplier / sumber barang |
 | `tipe_barang` | Ya | Isi `existing` atau `baru` |
-| `nama_barang_existing` | Ya, jika existing | Nama barang yang sudah ada di sistem |
+| `kode_barang` | Tidak | Kode barang. Untuk barang lama dipakai untuk mencari barang; untuk barang baru disimpan sebagai kodenya |
+| `nama_barang_existing` | Ya, jika existing (atau isi `kode_barang`) | Nama barang yang sudah ada di sistem |
 | `nama_barang_baru` | Ya, jika baru | Nama barang baru yang belum ada di sistem |
 | `kategori_barang_baru` | Ya, jika baru | Kategori untuk barang baru |
 | `satuan_barang_baru` | Ya, jika baru | Satuan untuk barang baru |
+| `merek_barang_baru` | Tidak | Merek untuk barang baru |
+| `izin_edar_barang_baru` | Tidak | Nomor izin edar (AKL/AKD/PKRT) untuk barang baru |
+| `lot` | Tidak | Nomor lot / batch |
+| `tanggal_kedaluwarsa` | Tidak | Tanggal kedaluwarsa lot (ED) |
 | `jumlah` | Ya | Jumlah barang masuk |
 | `harga_satuan` | Tidak | Harga satuan |
 | `keterangan` | Tidak | Catatan transaksi |
@@ -31,10 +40,10 @@ Template `Barang Masuk` memakai kolom berikut:
 ### Contoh Barang Masuk
 
 ```csv
-kode_transaksi,tanggal,supplier,tipe_barang,nama_barang_existing,nama_barang_baru,kategori_barang_baru,satuan_barang_baru,jumlah,harga_satuan,keterangan
-IN-2026-10-14-A,2026-10-14,PT Sumber Jaya,existing,Kertas A4,,,,10,65000,restock gudang
-IN-2026-10-14-A,2026-10-14,PT Sumber Jaya,existing,Pulpen Biru,,,,24,3500,restock gudang
-IN-2026-10-14-B,2026-10-14,PT Alat Kantor,baru,,Map Arsip,ATK,pcs,50,12000,barang baru
+kode_transaksi,tanggal,supplier,tipe_barang,kode_barang,nama_barang_existing,nama_barang_baru,kategori_barang_baru,satuan_barang_baru,merek_barang_baru,izin_edar_barang_baru,lot,tanggal_kedaluwarsa,jumlah,harga_satuan,keterangan
+IN-2026-10-14-A,2026-10-14,PT Sumber Jaya,existing,SGN-M,Sarung Tangan Nitril M,,,,,,LT2410A,2027-09-30,20,75000,restock gudang
+IN-2026-10-14-A,2026-10-14,PT Sumber Jaya,existing,,Masker Medis 3 Ply,,,,,,,,10,35000,restock gudang
+IN-2026-10-14-B,2026-10-14,PT Lab Supply,baru,REA-GLU,,Reagen Glukosa,Reagen,box,MerkX,AKD 20101234567,R2410,31/03/2027,5,450000,barang baru
 ```
 
 ### Cara Isi Barang Baru
@@ -55,7 +64,9 @@ Template `Barang Keluar` memakai kolom berikut:
 | `kode_transaksi` | Ya | Kode batch transaksi keluar |
 | `tanggal` | Ya | Format `YYYY-MM-DD` |
 | `tujuan_penerima` | Tidak | Nama divisi / orang / tujuan |
-| `nama_barang` | Ya | Nama barang yang sudah ada di sistem |
+| `kode_barang` | Tidak | Kode barang (diutamakan untuk mencari barang) |
+| `nama_barang` | Ya, jika `kode_barang` kosong | Nama barang yang sudah ada di sistem |
+| `lot` | Tidak | Kosongkan agar sistem memilih lot otomatis (ED terdekat dulu, lot expired dilewati). Isi nomor lot untuk mengambil lot tertentu, atau `tanpa lot` untuk stok tanpa lot |
 | `jumlah` | Ya | Jumlah barang keluar |
 | `keterangan` | Tidak | Catatan transaksi |
 | `stok_saat_ini` | Tidak | Kolom bantu dari template, tidak wajib diubah |
@@ -64,9 +75,9 @@ Template `Barang Keluar` memakai kolom berikut:
 ### Contoh Barang Keluar
 
 ```csv
-kode_transaksi,tanggal,tujuan_penerima,nama_barang,jumlah,keterangan,stok_saat_ini,satuan
-OUT-2026-10-14-A,2026-10-14,Produksi,Kertas A4,2,untuk kebutuhan kantor,10,pcs
-OUT-2026-10-14-A,2026-10-14,Produksi,Pulpen Biru,5,untuk kebutuhan kantor,24,pcs
+kode_transaksi,tanggal,tujuan_penerima,kode_barang,nama_barang,lot,jumlah,keterangan,stok_saat_ini,satuan
+OUT-2026-10-14-A,2026-10-14,RS Sehat Sentosa,SGN-M,Sarung Tangan Nitril M,,5,PO-123,20,box
+OUT-2026-10-14-A,2026-10-14,RS Sehat Sentosa,REA-GLU,Reagen Glukosa,R2410,2,PO-123,5,box
 ```
 
 ## Stok Opname
@@ -78,7 +89,10 @@ Template `Stok Opname` memakai kolom berikut:
 | `kode_sesi` | Ya | Kode sesi opname |
 | `tanggal` | Ya | Format `YYYY-MM-DD` |
 | `alasan_opname` | Ya | Alasan opname, misalnya `stok opname bulanan` |
-| `nama_barang` | Ya | Nama barang yang sudah ada di sistem |
+| `kode_barang` | Tidak | Kode barang (diutamakan untuk mencari barang) |
+| `nama_barang` | Ya, jika `kode_barang` kosong | Nama barang yang sudah ada di sistem |
+| `lot` | Tidak | Kosongkan untuk opname total barang. Isi nomor lot untuk opname per lot, atau `(tanpa lot)` untuk stok tanpa lot. Lot yang belum tercatat akan dibuat baru |
+| `tanggal_kedaluwarsa` | Tidak | Diisi jika lot baru ditemukan saat opname |
 | `stok_sistem` | Tidak | Kolom bantu dari template |
 | `stok_fisik` | Ya | Hasil hitung fisik aktual |
 | `satuan` | Tidak | Kolom bantu dari template |
@@ -87,10 +101,14 @@ Template `Stok Opname` memakai kolom berikut:
 ### Contoh Stok Opname
 
 ```csv
-kode_sesi,tanggal,alasan_opname,nama_barang,stok_sistem,stok_fisik,satuan,catatan
-OP-2026-10-14-A,2026-10-14,stok opname bulanan,Kertas A4,8,8,pcs,sesuai
-OP-2026-10-14-A,2026-10-14,stok opname bulanan,Pulpen Biru,19,18,pcs,selisih 1
+kode_sesi,tanggal,alasan_opname,kode_barang,nama_barang,lot,tanggal_kedaluwarsa,stok_sistem,stok_fisik,satuan,catatan
+OP-2026-10-14-A,2026-10-14,stok opname bulanan,SGN-M,Sarung Tangan Nitril M,LT2410A,2027-09-30,15,15,box,sesuai
+OP-2026-10-14-A,2026-10-14,stok opname bulanan,REA-GLU,Reagen Glukosa,R2410,2027-03-31,3,2,box,selisih 1
 ```
+
+Template opname yang diunduh dari aplikasi sudah berisi satu baris per lot, lengkap dengan stok sistem per lot.
+
+Dalam satu sesi, satu barang diopname **per lot** atau **total barang**, jangan dicampur.
 
 ## Tips Pakai
 
